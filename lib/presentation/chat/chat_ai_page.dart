@@ -287,26 +287,36 @@ class _ChatAiPageState extends State<ChatAiPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: !isWide,
-        titleSpacing: 12,
-        title: InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTapDown: (details) => _openModelMenu(details.globalPosition),
-          child: Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('KAVI', style: TextStyle(fontWeight: FontWeight.w600)),
-                  if (assistantLabel.isNotEmpty)
-                    Text(
-                      assistantLabel,
-                      style: Theme.of(context).textTheme.labelSmall,
+        titleSpacing: isWide ? 20 : 0,
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTapDown: (details) => _openModelMenu(details.globalPosition),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('KAVI', style: TextStyle(fontWeight: FontWeight.bold)),
+                        if (assistantLabel.isNotEmpty)
+                          Text(
+                            assistantLabel,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                      ],
                     ),
-                ],
+                    const SizedBox(width: 6),
+                    const Icon(Icons.expand_more, size: 18),
+                  ],
+                ),
               ),
-              const SizedBox(width: 6),
-              const Icon(Icons.expand_more, size: 18),
-            ],
+            ),
           ),
         ),
       ),
@@ -373,7 +383,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
   Future<void> _openModelMenu(Offset globalPosition) async {
     final AppSettings s = widget.settings.settings;
     final AiProviderType currentType = s.activeProvider;
-    final List<AiProviderType> types = AiProviderType.values;
+    final List<AiProviderType> types = AiProviderType.values; // will filter below to only those with models
     final Map<AiProviderType, ProviderSettings> providersMap = s.providers;
     final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     final RelativeRect position = RelativeRect.fromLTRB(
@@ -400,7 +410,15 @@ class _ChatAiPageState extends State<ChatAiPage> {
                 children: [
                   Text('Select model', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
-                  ...types.map((t) {
+                  ...types.where((t) {
+                    final ProviderSettings ts = providersMap[t] ?? const ProviderSettings(enabled: false, apiKey: '');
+                    final List<String> models = <String>{
+                      if (t == AiProviderType.mock) 'mock-sim',
+                      if (ts.defaultModel != null && ts.defaultModel!.isNotEmpty) ts.defaultModel!,
+                      ...ts.customModels,
+                    }.toList();
+                    return models.isNotEmpty;
+                  }).map((t) {
                     final ProviderSettings ts = providersMap[t] ?? const ProviderSettings(enabled: false, apiKey: '');
                     final List<String> models = <String>{
                       if (t == AiProviderType.mock) 'mock-sim',
@@ -412,34 +430,28 @@ class _ChatAiPageState extends State<ChatAiPage> {
                       children: [
                         Row(
                           children: [
-                            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                            Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8),
                               child: Text(_providerLabel(t), style: Theme.of(context).textTheme.labelMedium),
                             ),
-                            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                            Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        if (models.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text('No models. Configure in Settings', style: Theme.of(context).textTheme.bodySmall),
-                          )
-                        else
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: models
-                                .map((m) => ChoiceChip(
-                                      label: Text(m),
-                                      selected: t == currentType && (ts.defaultModel == m || (t == AiProviderType.mock && m == 'mock-sim')),
-                                      onSelected: (_) {
-                                        Navigator.of(context).pop(_ModelSelectionResult(type: t, model: m));
-                                      },
-                                    ))
-                                .toList(),
-                          ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: models
+                              .map((m) => ChoiceChip(
+                                    label: Text(m),
+                                    selected: t == currentType && (ts.defaultModel == m || (t == AiProviderType.mock && m == 'mock-sim')),
+                                    onSelected: (_) {
+                                      Navigator.of(context).pop(_ModelSelectionResult(type: t, model: m));
+                                    },
+                                  ))
+                              .toList(),
+                        ),
                         const SizedBox(height: 12),
                       ],
                     );

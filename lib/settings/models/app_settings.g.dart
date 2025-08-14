@@ -17,6 +17,9 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
       ? ThemeMode.system
       : AppSettings._themeModeFromJson(json['themeMode']),
   primaryColorSeed: (json['primaryColorSeed'] as num?)?.toInt() ?? 4284955319,
+  startOnOpenMode: json['startOnOpenMode'] == null
+      ? StartOnOpenMode.newChat
+      : AppSettings._startModeFromJson(json['startOnOpenMode']),
 );
 
 Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
@@ -27,11 +30,13 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       'defaultMaxTokens': instance.defaultMaxTokens,
       'themeMode': AppSettings._themeModeToJson(instance.themeMode),
       'primaryColorSeed': instance.primaryColorSeed,
+      'startOnOpenMode': AppSettings._startModeToJson(instance.startOnOpenMode),
     };
 
 const _$AiProviderTypeEnumMap = {
   AiProviderType.openAI: 'openAI',
   AiProviderType.deepSeek: 'deepSeek',
+  AiProviderType.mock: 'mock',
 };
 
 ProviderSettings _$ProviderSettingsFromJson(Map<String, dynamic> json) =>
