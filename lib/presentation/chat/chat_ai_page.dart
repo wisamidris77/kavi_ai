@@ -14,6 +14,10 @@ import '../../providers/base/provider_config.dart';
 import 'widgets/chat_input.dart';
 import 'widgets/chat_messages_list.dart';
 import 'widgets/chat_sidebar.dart';
+import '../chat/controller/chat_history_controller.dart';
+import '../chat/repository/chat_history_repository.dart';
+import '../../domain/models/chat_message_model.dart' as domain_msg;
+import '../../domain/models/chat_role.dart' as domain_role;
 
 class ChatAiPage extends StatefulWidget {
   final AiChatService? service;
@@ -32,10 +36,21 @@ class _ChatAiPageState extends State<ChatAiPage> {
   StreamSubscription<ChatMessage>? _subscription;
   bool _isBusy = false;
 
+  late final ChatHistoryController _history;
+  late final VoidCallback _historyListener;
+
   @override
   void initState() {
     super.initState();
     _chatService = widget.service ?? MockAiChatService();
+    _history = ChatHistoryController(
+      repository: ChatHistoryRepository(),
+      defaultProvider: widget.settings.settings.activeProvider,
+    );
+    _history.addListener(() {
+      setState(() {});
+    });
+    unawaited(_history.load());
     widget.settings.addListener(_applyProviderFromSettings);
     _applyProviderFromSettings();
   }
@@ -45,6 +60,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _subscription?.cancel();
     _scrollController.dispose();
     widget.settings.removeListener(_applyProviderFromSettings);
+    _history.removeListener(() {});
     super.dispose();
   }
 
@@ -52,6 +68,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
     final AppSettings s = widget.settings.settings;
     final AiProviderType type = s.activeProvider;
     final ProviderSettings ps = s.providers[type] ?? const ProviderSettings(enabled: false, apiKey: '');
+
+    _history.setDefaultProvider(type);
 
     if (!ps.enabled || ps.apiKey.isEmpty) {
       setState(() {
@@ -81,9 +99,17 @@ class _ChatAiPageState extends State<ChatAiPage> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => SettingsPage(controller: widget.settings)));
   }
 
-  void _newChat() {
+  Future<void> _newChat() async {
+    await _history.createNewChat();
     setState(() {
       _messages.clear();
+    });
+  }
+
+  void _stop() {
+    _subscription?.cancel();
+    setState(() {
+      _isBusy = false;
     });
   }
 
@@ -95,6 +121,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
       createdAt: DateTime.now(),
     );
 
+    await _history.addUserMessage(text, id: userMessage.id);
+
     setState(() {
       _messages.add(userMessage);
       _isBusy = true;
@@ -104,7 +132,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _subscription?.cancel();
     _subscription = _chatService
         .sendMessage(history: List<ChatMessage>.from(_messages), prompt: text)
-        .listen((ChatMessage assistantUpdate) {
+        .listen((ChatMessage assistantUpdate) async {
       final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
       setState(() {
         if (existingIndex >= 0) {
@@ -113,6 +141,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
           _messages.add(assistantUpdate);
         }
       });
+      await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
       _scrollToBottomDeferred();
     }, onDone: () {
       setState(() {
@@ -136,6 +165,41 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
   }
 
+  void _selectChat(String chatId) async {
+    await _history.selectChat(chatId);
+    final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
+    setState(() {
+      _messages
+        ..clear()
+        ..addAll(hist.map(_mapDomainToCore));
+    });
+    _scrollToBottomDeferred();
+  }
+
+  ChatMessage _mapDomainToCore(domain_msg.ChatMessageModel m) {
+    final ChatRole role;
+    switch (m.role) {
+      case domain_role.ChatRole.user:
+        role = ChatRole.user;
+        break;
+      case domain_role.ChatRole.assistant:
+        role = ChatRole.assistant;
+        break;
+      case domain_role.ChatRole.system:
+        role = ChatRole.system;
+        break;
+      default:
+        role = ChatRole.assistant;
+        break;
+    }
+    return ChatMessage(
+      id: m.id,
+      role: role,
+      content: m.content,
+      createdAt: m.createdAt ?? DateTime.now(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,7 +207,13 @@ class _ChatAiPageState extends State<ChatAiPage> {
         children: <Widget>[
           const SizedBox(width: 8),
           if (MediaQuery.of(context).size.width >= 900)
-            ChatSidebar(onNewChat: _newChat),
+            ChatSidebar(
+              onNewChat: _newChat,
+              onSettings: _openSettings,
+              chats: _history.chats,
+              activeChatId: _history.activeChatId,
+              onSelectChat: _selectChat,
+            ),
           if (MediaQuery.of(context).size.width >= 900)
             VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
           Expanded(
@@ -160,7 +230,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
                 ChatInput(
                   isBusy: _isBusy,
                   onSend: _send,
-                  onStop: () => _subscription?.cancel(),
+                  onStop: _stop,
                 ),
               ],
             ),

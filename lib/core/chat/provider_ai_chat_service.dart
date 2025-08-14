@@ -32,7 +32,7 @@ class ProviderAiChatService implements AiChatService {
 		required List<ChatMessage> history,
 		required String prompt,
 	}) {
-		final String messageId = DateTime.now().microsecondsSinceEpoch.toString();
+		final String messageId = 'a_${DateTime.now().microsecondsSinceEpoch}';
 		final controller = StreamController<ChatMessage>();
 		_controllers[messageId] = controller;
 
