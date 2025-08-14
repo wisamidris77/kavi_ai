@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:flutter/material.dart';
 import '../../providers/base/provider_type.dart';
 
 part 'app_settings.g.dart';
@@ -10,6 +11,8 @@ class AppSettings {
 		required this.providers,
 		this.defaultTemperature = 0.7,
 		this.defaultMaxTokens,
+		this.themeMode = ThemeMode.system,
+		this.primaryColorSeed = 0xFF673AB7,
 	});
 
 	factory AppSettings.initial() => AppSettings(
@@ -36,17 +39,28 @@ class AppSettings {
 
 	final int? defaultMaxTokens;
 
+	@JsonKey(fromJson: _themeModeFromJson, toJson: _themeModeToJson)
+	final ThemeMode themeMode;
+
+	/// Stored as ARGB int value
+	@JsonKey(defaultValue: 0xFF673AB7)
+	final int primaryColorSeed;
+
 	AppSettings copyWith({
 		AiProviderType? activeProvider,
 		Map<AiProviderType, ProviderSettings>? providers,
 		double? defaultTemperature,
 		int? defaultMaxTokens,
+		ThemeMode? themeMode,
+		int? primaryColorSeed,
 	}) {
 		return AppSettings(
 			activeProvider: activeProvider ?? this.activeProvider,
 			providers: providers ?? this.providers,
 			defaultTemperature: defaultTemperature ?? this.defaultTemperature,
 			defaultMaxTokens: defaultMaxTokens ?? this.defaultMaxTokens,
+			themeMode: themeMode ?? this.themeMode,
+			primaryColorSeed: primaryColorSeed ?? this.primaryColorSeed,
 		);
 	}
 
@@ -68,6 +82,37 @@ class AppSettings {
 	static Map<String, dynamic> _providersToJson(Map<AiProviderType, ProviderSettings> map) {
 		return map.map((key, value) => MapEntry(key.name, value.toJson()));
 	}
+
+	static ThemeMode _themeModeFromJson(Object? value) {
+		final String name = (value is String ? value : null) ?? ThemeModeValues.system;
+		switch (name) {
+			case ThemeModeValues.light:
+				return ThemeMode.light;
+			case ThemeModeValues.dark:
+				return ThemeMode.dark;
+			case ThemeModeValues.system:
+			default:
+				return ThemeMode.system;
+		}
+	}
+
+	static String _themeModeToJson(ThemeMode mode) {
+		switch (mode) {
+			case ThemeMode.light:
+				return ThemeModeValues.light;
+			case ThemeMode.dark:
+				return ThemeModeValues.dark;
+			case ThemeMode.system:
+			default:
+				return ThemeModeValues.system;
+		}
+	}
+}
+
+class ThemeModeValues {
+	static const String system = 'system';
+	static const String light = 'light';
+	static const String dark = 'dark';
 }
 
 @JsonSerializable()

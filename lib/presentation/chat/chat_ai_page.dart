@@ -47,12 +47,23 @@ class _ChatAiPageState extends State<ChatAiPage> {
       repository: ChatHistoryRepository(),
       defaultProvider: widget.settings.settings.activeProvider,
     );
-    _history.addListener(() {
+    _historyListener = () {
       setState(() {});
-    });
-    unawaited(_history.load());
+    };
+    _history.addListener(_historyListener);
+    unawaited(_loadHistory());
     widget.settings.addListener(_applyProviderFromSettings);
     _applyProviderFromSettings();
+  }
+
+  Future<void> _loadHistory() async {
+    await _history.load();
+    final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
+    setState(() {
+      _messages
+        ..clear()
+        ..addAll(hist.map(_mapDomainToCore));
+    });
   }
 
   @override
@@ -60,7 +71,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _subscription?.cancel();
     _scrollController.dispose();
     widget.settings.removeListener(_applyProviderFromSettings);
-    _history.removeListener(() {});
+    _history.removeListener(_historyListener);
     super.dispose();
   }
 
@@ -115,7 +126,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
 
   Future<void> _send(String text) async {
     final ChatMessage userMessage = ChatMessage(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: 'u_${DateTime.now().microsecondsSinceEpoch}',
       role: ChatRole.user,
       content: text,
       createdAt: DateTime.now(),
@@ -165,17 +176,6 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
   }
 
-  void _selectChat(String chatId) async {
-    await _history.selectChat(chatId);
-    final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
-    setState(() {
-      _messages
-        ..clear()
-        ..addAll(hist.map(_mapDomainToCore));
-    });
-    _scrollToBottomDeferred();
-  }
-
   ChatMessage _mapDomainToCore(domain_msg.ChatMessageModel m) {
     final ChatRole role;
     switch (m.role) {
@@ -200,8 +200,27 @@ class _ChatAiPageState extends State<ChatAiPage> {
     );
   }
 
+  String _providerLabel(AiProviderType t) {
+    switch (t) {
+      case AiProviderType.openAI:
+        return 'OpenAI';
+      case AiProviderType.deepSeek:
+        return 'DeepSeek';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final AppSettings s = widget.settings.settings;
+    final AiProviderType type = s.activeProvider;
+    final ProviderSettings ps = s.providers[type] ?? const ProviderSettings(enabled: false, apiKey: '');
+    final String assistantLabel = ps.enabled
+        ? [
+            _providerLabel(type),
+            if (ps.defaultModel != null && ps.defaultModel!.isNotEmpty) ps.defaultModel!,
+          ].join(' • ')
+        : 'Assistant';
+
     return Scaffold(
       body: Row(
         children: <Widget>[
@@ -209,22 +228,19 @@ class _ChatAiPageState extends State<ChatAiPage> {
           if (MediaQuery.of(context).size.width >= 900)
             ChatSidebar(
               onNewChat: _newChat,
-              onSettings: _openSettings,
-              chats: _history.chats,
-              activeChatId: _history.activeChatId,
-              onSelectChat: _selectChat,
+              onOpenSettings: _openSettings,
             ),
           if (MediaQuery.of(context).size.width >= 900)
             VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
           Expanded(
             child: Column(
               children: <Widget>[
-                _TopBar(onNewChat: _newChat, onSettings: _openSettings),
+                const _TopBar(),
                 const Divider(height: 1),
                 Expanded(
                   child: _messages.isEmpty
-                      ? _EmptyState(onNewChat: _newChat)
-                      : ChatMessagesList(messages: _messages, controller: _scrollController),
+                      ? const _EmptyState()
+                      : ChatMessagesList(messages: _messages, controller: _scrollController, assistantLabel: assistantLabel),
                 ),
                 const Divider(height: 1),
                 ChatInput(
@@ -240,13 +256,21 @@ class _ChatAiPageState extends State<ChatAiPage> {
       ),
     );
   }
+
+  void _selectChat(String chatId) async {
+    await _history.selectChat(chatId);
+    final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
+    setState(() {
+      _messages
+        ..clear()
+        ..addAll(hist.map(_mapDomainToCore));
+    });
+    _scrollToBottomDeferred();
+  }
 }
 
 class _TopBar extends StatelessWidget {
-  final VoidCallback onNewChat;
-  final VoidCallback onSettings;
-
-  const _TopBar({required this.onNewChat, required this.onSettings});
+  const _TopBar();
 
   @override
   Widget build(BuildContext context) {
@@ -261,17 +285,6 @@ class _TopBar extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const Spacer(),
-            IconButton(
-              tooltip: 'Settings',
-              onPressed: onSettings,
-              icon: const Icon(Icons.settings_outlined),
-            ),
-            const SizedBox(width: 4),
-            FilledButton.tonalIcon(
-              onPressed: onNewChat,
-              icon: const Icon(Icons.add),
-              label: const Text('New chat'),
-            ),
           ],
         ),
       ),
@@ -280,9 +293,7 @@ class _TopBar extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onNewChat;
-
-  const _EmptyState({required this.onNewChat});
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -294,8 +305,6 @@ class _EmptyState extends StatelessWidget {
           Icon(Icons.smart_toy_outlined, size: 48, color: colors.primary),
           const SizedBox(height: 12),
           Text('How can I help you today?', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          FilledButton(onPressed: onNewChat, child: const Text('Start a new chat')),
           const SizedBox(height: 24),
         ],
       ),

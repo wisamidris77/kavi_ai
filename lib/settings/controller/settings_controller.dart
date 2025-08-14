@@ -21,6 +21,16 @@ class SettingsController extends ChangeNotifier {
     await _repository.save(_settings);
   }
 
+  /// Replace all settings at once.
+  /// If [persist] is true, the new settings are saved to storage.
+  void replaceSettings(AppSettings newSettings, {bool persist = false}) {
+    _settings = newSettings;
+    notifyListeners();
+    if (persist) {
+      save();
+    }
+  }
+
   void setActiveProvider(AiProviderType type) {
     _settings = _settings.copyWith(activeProvider: type);
     notifyListeners();

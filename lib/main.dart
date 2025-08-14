@@ -34,22 +34,31 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Kavi AI',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        brightness: Brightness.light,
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, brightness: Brightness.dark),
-        brightness: Brightness.dark,
-      ),
-      themeMode: ThemeMode.system,
-      home: _loaded
-          ? ChatAiPage(settings: _settingsController)
-          : const _LoadingScreen(),
+    return AnimatedBuilder(
+      animation: _settingsController,
+      builder: (context, _) {
+        final seed = Color(_settingsController.settings.primaryColorSeed);
+        final mode = _settingsController.settings.themeMode;
+        return MaterialApp(
+          title: 'Kavi AI',
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light),
+            brightness: Brightness.light,
+            visualDensity: VisualDensity.standard,
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
+            brightness: Brightness.dark,
+            visualDensity: VisualDensity.standard,
+          ),
+          themeMode: mode,
+          home: _loaded
+              ? ChatAiPage(settings: _settingsController)
+              : const _LoadingScreen(),
+        );
+      },
     );
   }
 }

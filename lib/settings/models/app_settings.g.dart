@@ -8,24 +8,21 @@ part of 'app_settings.dart';
 
 AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   activeProvider: $enumDecode(_$AiProviderTypeEnumMap, json['activeProvider']),
-  providers: (json['providers'] as Map<String, dynamic>).map(
-    (k, e) => MapEntry(
-      $enumDecode(_$AiProviderTypeEnumMap, k),
-      ProviderSettings.fromJson(e as Map<String, dynamic>),
-    ),
-  ),
+  providers: AppSettings._providersFromJson(json['providers'] as Map<String, dynamic>),
   defaultTemperature: (json['defaultTemperature'] as num?)?.toDouble() ?? 0.7,
   defaultMaxTokens: (json['defaultMaxTokens'] as num?)?.toInt(),
+  themeMode: AppSettings._themeModeFromJson(json['themeMode']),
+  primaryColorSeed: (json['primaryColorSeed'] as num?)?.toInt() ?? 0xFF673AB7,
 );
 
 Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
     <String, dynamic>{
       'activeProvider': _$AiProviderTypeEnumMap[instance.activeProvider]!,
-      'providers': instance.providers.map(
-        (k, e) => MapEntry(_$AiProviderTypeEnumMap[k]!, e.toJson()),
-      ),
+      'providers': AppSettings._providersToJson(instance.providers),
       'defaultTemperature': instance.defaultTemperature,
       'defaultMaxTokens': instance.defaultMaxTokens,
+      'themeMode': AppSettings._themeModeToJson(instance.themeMode),
+      'primaryColorSeed': instance.primaryColorSeed,
     };
 
 const _$AiProviderTypeEnumMap = {

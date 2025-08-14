@@ -76,7 +76,8 @@ class ChatHistoryController extends ChangeNotifier {
     );
     _chats = _chats.map((ChatModel c) {
       if (c.id != (_activeChatId ?? '')) return c;
-      final String computedTitle = c.title.isEmpty
+      final bool needsTitle = c.title.isEmpty || c.title == 'New chat';
+      final String computedTitle = needsTitle
           ? (content.length > 24 ? content.substring(0, 24) : content)
           : c.title;
       return ChatModel(

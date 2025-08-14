@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../providers/base/provider_type.dart';
-import '../../providers/base/provider_type.dart' as types;
 import '../../settings/controller/settings_controller.dart';
 import '../../settings/models/app_settings.dart';
 
@@ -15,92 +14,252 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  late AppSettings _draft;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _draft = widget.controller.settings;
+  }
+
+  void _save() {
+    widget.controller.replaceSettings(_draft, persist: true);
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final AppSettings settings = widget.controller.settings;
     final ColorScheme colors = Theme.of(context).colorScheme;
+    final bool isWide = MediaQuery.of(context).size.width >= 900;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: AnimatedBuilder(
-        animation: widget.controller,
-        builder: (context, _) {
-          final AppSettings s = widget.controller.settings;
-          final enabledProviders = s.providers.entries.where((e) => e.value.enabled).map((e) => e.key).toList();
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text('Active Provider', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<AiProviderType>(
-                value: s.activeProvider,
-                items: AiProviderType.values
-                    .map((t) => DropdownMenuItem(value: t, child: Text(_providerLabel(t))))
-                    .toList(growable: false),
-                onChanged: (v) {
-                  if (v != null) widget.controller.setActiveProvider(v);
-                },
-                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-              ),
-              const SizedBox(height: 24),
-              Text('Defaults', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: s.defaultTemperature.toStringAsFixed(2),
-                      decoration: const InputDecoration(labelText: 'Temperature', border: OutlineInputBorder(), isDense: true),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      onChanged: (v) {
-                        final parsed = double.tryParse(v);
-                        if (parsed != null) widget.controller.setDefaultTemperature(parsed.clamp(0.0, 2.0));
-                      },
-                    ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final EdgeInsets pad = const EdgeInsets.all(16);
+          final List<Widget> left = <Widget>[
+            _SectionHeader(title: 'Appearance'),
+            _ThemeModeSelector(
+              mode: _draft.themeMode,
+              onChanged: (mode) => setState(() => _draft = _draft.copyWith(themeMode: mode)),
+            ),
+            const SizedBox(height: 12),
+            _ColorSeedGrid(
+              selectedColor: Color(_draft.primaryColorSeed),
+              onSelect: (c) => setState(() => _draft = _draft.copyWith(primaryColorSeed: c.value)),
+            ),
+            const SizedBox(height: 24),
+            _SectionHeader(title: 'Defaults'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    key: const ValueKey('temperature'),
+                    initialValue: _draft.defaultTemperature.toStringAsFixed(2),
+                    decoration: const InputDecoration(labelText: 'Temperature', border: OutlineInputBorder(), isDense: true),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (v) {
+                      final parsed = double.tryParse(v);
+                      if (parsed != null) setState(() => _draft = _draft.copyWith(defaultTemperature: parsed.clamp(0.0, 2.0)));
+                    },
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: s.defaultMaxTokens?.toString() ?? '',
-                      decoration: const InputDecoration(labelText: 'Max tokens', border: OutlineInputBorder(), isDense: true),
-                      keyboardType: TextInputType.number,
-                      onChanged: (v) => widget.controller.setDefaultMaxTokens(int.tryParse(v.isEmpty ? '0' : v) == 0 ? null : int.tryParse(v)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    key: const ValueKey('max_tokens'),
+                    initialValue: _draft.defaultMaxTokens?.toString() ?? '',
+                    decoration: const InputDecoration(labelText: 'Max tokens', border: OutlineInputBorder(), isDense: true),
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) {
+                      final int? parsed = int.tryParse(v.isEmpty ? '0' : v);
+                      setState(() => _draft = _draft.copyWith(defaultMaxTokens: parsed == null || parsed == 0 ? null : parsed));
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ];
+
+          final List<Widget> right = <Widget>[
+            _SectionHeader(title: 'Providers'),
+            const SizedBox(height: 8),
+            ...AiProviderType.values.map((t) => _ProviderCard(
+                  type: t,
+                  settings: _draft.providers[t] ?? const ProviderSettings(enabled: false, apiKey: ''),
+                  onChanged: (updated) {
+                    final current = Map<AiProviderType, ProviderSettings>.from(_draft.providers);
+                    current[t] = updated;
+                    setState(() => _draft = _draft.copyWith(providers: current));
+                  },
+                )),
+          ];
+
+          return SafeArea(
+            child: Form(
+              key: _formKey,
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    padding: pad.copyWith(bottom: 96),
+                    child: isWide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: left)),
+                              const SizedBox(width: 16),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: right)),
+                            ],
+                          )
+                        : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            ...left,
+                            const SizedBox(height: 24),
+                            ...right,
+                          ]),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        border: Border(top: BorderSide(color: colors.outlineVariant)),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12 + 8),
+                      child: SafeArea(
+                        top: false,
+                        child: Row(
+                          children: [
+                            TextButton.icon(
+                              onPressed: () => setState(() => _draft = widget.controller.settings),
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Reset changes'),
+                            ),
+                            const Spacer(),
+                            FilledButton.icon(
+                              onPressed: _save,
+                              icon: const Icon(Icons.save_outlined),
+                              label: const Text('Save'),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Text('Providers', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              ...AiProviderType.values.map((t) => _ProviderCard(type: t, controller: widget.controller)),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.check),
-                label: const Text('Done'),
-              ),
-            ],
+            ),
           );
         },
       ),
     );
   }
+}
 
-  String _providerLabel(AiProviderType t) {
-    switch (t) {
-      case types.AiProviderType.openAI:
-        return 'OpenAI';
-      case types.AiProviderType.deepSeek:
-        return 'DeepSeek';
-    }
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+    );
+  }
+}
+
+class _ThemeModeSelector extends StatelessWidget {
+  final ThemeMode mode;
+  final ValueChanged<ThemeMode> onChanged;
+  const _ThemeModeSelector({required this.mode, required this.onChanged});
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<ThemeMode>(
+      segments: const <ButtonSegment<ThemeMode>>[
+        ButtonSegment(value: ThemeMode.system, label: Text('System'), icon: Icon(Icons.computer)),
+        ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode)),
+        ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode)),
+      ],
+      selected: {mode},
+      onSelectionChanged: (s) => onChanged(s.first),
+    );
+  }
+}
+
+class _ColorSeedGrid extends StatelessWidget {
+  final Color selectedColor;
+  final ValueChanged<Color> onSelect;
+  const _ColorSeedGrid({required this.selectedColor, required this.onSelect});
+
+  static const List<Color> _choices = <Color>[
+    Color(0xFF2962FF), // Blue A700
+    Color(0xFF00C853), // Green A700
+    Color(0xFFFFAB00), // Amber A700
+    Color(0xFFD50000), // Red A700
+    Color(0xFFAA00FF), // Purple A700
+    Color(0xFF00BFA5), // Teal A700
+    Color(0xFF6200EE), // Deep Purple
+    Color(0xFF1E88E5), // Blue 600
+    Color(0xFF43A047), // Green 600
+    Color(0xFFF4511E), // Deep Orange 600
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final double maxWidth = MediaQuery.of(context).size.width;
+    final int columns = maxWidth >= 900 ? 10 : 5;
+    return GridView.count(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      crossAxisCount: columns,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      children: _choices.map((c) {
+        final bool isSelected = c.value == selectedColor.value;
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => onSelect(c),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor,
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: c,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  const Align(
+                    alignment: Alignment.center,
+                    child: Icon(Icons.check, color: Colors.white),
+                  ),
+              ],
+            ),
+          ),
+        );
+      }).toList(growable: false),
+    );
   }
 }
 
 class _ProviderCard extends StatefulWidget {
-  const _ProviderCard({required this.type, required this.controller});
+  const _ProviderCard({required this.type, required this.settings, required this.onChanged});
 
   final AiProviderType type;
-  final SettingsController controller;
+  final ProviderSettings settings;
+  final ValueChanged<ProviderSettings> onChanged;
 
   @override
   State<_ProviderCard> createState() => _ProviderCardState();
@@ -117,8 +276,7 @@ class _ProviderCardState extends State<_ProviderCard> {
 
   @override
   Widget build(BuildContext context) {
-    final ProviderSettings settings = widget.controller.settings.providers[widget.type] ??
-        const ProviderSettings(enabled: false, apiKey: '');
+    final ProviderSettings settings = widget.settings;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -134,7 +292,7 @@ class _ProviderCardState extends State<_ProviderCard> {
                 ),
                 Switch(
                   value: settings.enabled,
-                  onChanged: (v) => widget.controller.setProviderEnabled(widget.type, v),
+                  onChanged: (v) => widget.onChanged(settings.copyWith(enabled: v)),
                 ),
               ],
             ),
@@ -143,19 +301,19 @@ class _ProviderCardState extends State<_ProviderCard> {
               initialValue: settings.apiKey,
               decoration: const InputDecoration(labelText: 'API Key', border: OutlineInputBorder(), isDense: true),
               obscureText: true,
-              onChanged: (v) => widget.controller.setApiKey(widget.type, v),
+              onChanged: (v) => widget.onChanged(settings.copyWith(apiKey: v)),
             ),
             const SizedBox(height: 8),
             TextFormField(
               initialValue: settings.baseUrl ?? '',
               decoration: const InputDecoration(labelText: 'Base URL (optional)', border: OutlineInputBorder(), isDense: true),
-              onChanged: (v) => widget.controller.setBaseUrl(widget.type, v.isEmpty ? null : v),
+              onChanged: (v) => widget.onChanged(settings.copyWith(baseUrl: v.isEmpty ? null : v)),
             ),
             const SizedBox(height: 8),
             TextFormField(
               initialValue: settings.defaultModel ?? '',
               decoration: const InputDecoration(labelText: 'Default model (optional)', border: OutlineInputBorder(), isDense: true),
-              onChanged: (v) => widget.controller.setDefaultModel(widget.type, v.isEmpty ? null : v),
+              onChanged: (v) => widget.onChanged(settings.copyWith(defaultModel: v.isEmpty ? null : v)),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -164,7 +322,10 @@ class _ProviderCardState extends State<_ProviderCard> {
               children: [
                 ...settings.customModels.map((m) => InputChip(
                       label: Text(m),
-                      onDeleted: () => widget.controller.removeCustomModel(widget.type, m),
+                      onDeleted: () {
+                        final updated = List<String>.from(settings.customModels)..remove(m);
+                        widget.onChanged(settings.copyWith(customModels: updated));
+                      },
                     )),
                 SizedBox(
                   width: 220,
@@ -173,7 +334,11 @@ class _ProviderCardState extends State<_ProviderCard> {
                     decoration: const InputDecoration(hintText: 'Add custom model', isDense: true, border: OutlineInputBorder()),
                     onSubmitted: (v) {
                       if (v.trim().isNotEmpty) {
-                        widget.controller.addCustomModel(widget.type, v.trim());
+                        final updated = List<String>.from(settings.customModels);
+                        if (!updated.contains(v.trim())) {
+                          updated.add(v.trim());
+                          widget.onChanged(settings.copyWith(customModels: updated));
+                        }
                         _newModelController.clear();
                         setState(() {});
                       }
