@@ -15,17 +15,25 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late AppSettings _draft;
+  late AppSettings _original;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
     _draft = widget.controller.settings;
+    _original = widget.controller.settings;
   }
 
   void _save() {
     widget.controller.replaceSettings(_draft, persist: true);
+    _original = _draft;
     Navigator.of(context).pop();
+  }
+
+  void _reset() {
+    setState(() => _draft = _original);
+    widget.controller.replaceSettings(_original, persist: false);
   }
 
   @override
@@ -42,12 +50,18 @@ class _SettingsPageState extends State<SettingsPage> {
             _SectionHeader(title: 'Appearance'),
             _ThemeModeSelector(
               mode: _draft.themeMode,
-              onChanged: (mode) => setState(() => _draft = _draft.copyWith(themeMode: mode)),
+              onChanged: (mode) {
+                setState(() => _draft = _draft.copyWith(themeMode: mode));
+                widget.controller.replaceSettings(_draft, persist: false);
+              },
             ),
             const SizedBox(height: 12),
             _ColorSeedGrid(
               selectedColor: Color(_draft.primaryColorSeed),
-              onSelect: (c) => setState(() => _draft = _draft.copyWith(primaryColorSeed: c.value)),
+              onSelect: (c) {
+                setState(() => _draft = _draft.copyWith(primaryColorSeed: c.value));
+                widget.controller.replaceSettings(_draft, persist: false);
+              },
             ),
             const SizedBox(height: 24),
             _SectionHeader(title: 'Defaults'),
@@ -134,7 +148,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: Row(
                           children: [
                             TextButton.icon(
-                              onPressed: () => setState(() => _draft = widget.controller.settings),
+                              onPressed: _reset,
                               icon: const Icon(Icons.refresh),
                               label: const Text('Reset changes'),
                             ),

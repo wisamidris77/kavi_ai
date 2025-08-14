@@ -97,29 +97,55 @@ class _ChatInputState extends State<ChatInput> {
                     maxLines: 6,
                     textInputAction: TextInputAction.newline,
                     decoration: InputDecoration(
-                      hintText: 'Message ChatGPT…',
+                      isDense: true,
+                      hintText: 'Message assistant…',
                       filled: true,
                       fillColor: colors.surface,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(20),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: colors.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: colors.primary),
+                      ),
+                      suffixIcon: Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: widget.isBusy
+                            ? IconButton(
+                                tooltip: 'Stop',
+                                icon: const Icon(Icons.stop),
+                                color: colors.onPrimary,
+                                style: IconButton.styleFrom(
+                                  backgroundColor: colors.primary,
+                                  minimumSize: const Size(40, 40),
+                                  padding: const EdgeInsets.all(10),
+                                ),
+                                onPressed: widget.onStop,
+                              )
+                            : IconButton(
+                                tooltip: 'Send',
+                                icon: const Icon(Icons.send),
+                                color: colors.onPrimary,
+                                style: IconButton.styleFrom(
+                                  backgroundColor: colors.primary,
+                                  minimumSize: const Size(40, 40),
+                                  padding: const EdgeInsets.all(10),
+                                ),
+                                onPressed: _submit,
+                              ),
+                      ),
+                      suffixIconConstraints: const BoxConstraints(minHeight: 40, minWidth: 40),
                     ),
                     onSubmitted: (_) => _submit(),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            if (widget.isBusy)
-              FilledButton.tonal(
-                onPressed: widget.onStop,
-                child: const Icon(Icons.stop),
-              )
-            else
-              FilledButton(
-                onPressed: _submit,
-                child: const Icon(Icons.send),
-              ),
           ],
         ),
       ),

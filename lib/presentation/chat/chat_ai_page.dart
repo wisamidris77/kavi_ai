@@ -221,21 +221,39 @@ class _ChatAiPageState extends State<ChatAiPage> {
           ].join(' • ')
         : 'Assistant';
 
+    final bool isWide = MediaQuery.of(context).size.width >= 900;
+
     return Scaffold(
+      drawer: isWide
+          ? null
+          : Drawer(
+              child: SafeArea(
+                child: ChatSidebar(
+                  onNewChat: _newChat,
+                  onOpenSettings: _openSettings,
+                  chats: _history.chats,
+                  activeChatId: _history.activeChatId,
+                  onSelectChat: _selectChat,
+                ),
+              ),
+            ),
       body: Row(
         children: <Widget>[
           const SizedBox(width: 8),
-          if (MediaQuery.of(context).size.width >= 900)
+          if (isWide)
             ChatSidebar(
               onNewChat: _newChat,
               onOpenSettings: _openSettings,
+              chats: _history.chats,
+              activeChatId: _history.activeChatId,
+              onSelectChat: _selectChat,
             ),
-          if (MediaQuery.of(context).size.width >= 900)
+          if (isWide)
             VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
           Expanded(
             child: Column(
               children: <Widget>[
-                const _TopBar(),
+                _TopBar(showMenu: !isWide),
                 const Divider(height: 1),
                 Expanded(
                   child: _messages.isEmpty
@@ -270,7 +288,9 @@ class _ChatAiPageState extends State<ChatAiPage> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar();
+  final bool showMenu;
+
+  const _TopBar({required this.showMenu});
 
   @override
   Widget build(BuildContext context) {
@@ -280,6 +300,14 @@ class _TopBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: <Widget>[
+            if (showMenu)
+              Builder(
+                builder: (context) => IconButton(
+                  tooltip: 'Menu',
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
             Text(
               'Chat',
               style: Theme.of(context).textTheme.titleLarge,

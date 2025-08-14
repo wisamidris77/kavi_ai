@@ -8,11 +8,15 @@ part of 'app_settings.dart';
 
 AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   activeProvider: $enumDecode(_$AiProviderTypeEnumMap, json['activeProvider']),
-  providers: AppSettings._providersFromJson(json['providers'] as Map<String, dynamic>),
+  providers: AppSettings._providersFromJson(
+    json['providers'] as Map<String, dynamic>,
+  ),
   defaultTemperature: (json['defaultTemperature'] as num?)?.toDouble() ?? 0.7,
   defaultMaxTokens: (json['defaultMaxTokens'] as num?)?.toInt(),
-  themeMode: AppSettings._themeModeFromJson(json['themeMode']),
-  primaryColorSeed: (json['primaryColorSeed'] as num?)?.toInt() ?? 0xFF673AB7,
+  themeMode: json['themeMode'] == null
+      ? ThemeMode.system
+      : AppSettings._themeModeFromJson(json['themeMode']),
+  primaryColorSeed: (json['primaryColorSeed'] as num?)?.toInt() ?? 4284955319,
 );
 
 Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
