@@ -13,6 +13,7 @@ class AppSettings {
 		this.defaultMaxTokens,
 		this.themeMode = ThemeMode.system,
 		this.primaryColorSeed = 0xFF673AB7,
+		this.startOnOpenMode = StartOnOpenMode.newChat,
 	});
 
 	factory AppSettings.initial() => AppSettings(
@@ -46,6 +47,9 @@ class AppSettings {
 	@JsonKey(defaultValue: 0xFF673AB7)
 	final int primaryColorSeed;
 
+	@JsonKey(fromJson: _startModeFromJson, toJson: _startModeToJson)
+	final StartOnOpenMode startOnOpenMode;
+
 	AppSettings copyWith({
 		AiProviderType? activeProvider,
 		Map<AiProviderType, ProviderSettings>? providers,
@@ -53,6 +57,7 @@ class AppSettings {
 		int? defaultMaxTokens,
 		ThemeMode? themeMode,
 		int? primaryColorSeed,
+		StartOnOpenMode? startOnOpenMode,
 	}) {
 		return AppSettings(
 			activeProvider: activeProvider ?? this.activeProvider,
@@ -61,6 +66,7 @@ class AppSettings {
 			defaultMaxTokens: defaultMaxTokens ?? this.defaultMaxTokens,
 			themeMode: themeMode ?? this.themeMode,
 			primaryColorSeed: primaryColorSeed ?? this.primaryColorSeed,
+			startOnOpenMode: startOnOpenMode ?? this.startOnOpenMode,
 		);
 	}
 
@@ -107,12 +113,45 @@ class AppSettings {
 				return ThemeModeValues.system;
 		}
 	}
+
+	static StartOnOpenMode _startModeFromJson(Object? value) {
+		final String name = (value is String ? value : null) ?? StartOnOpenModeValues.newChat;
+		switch (name) {
+			case StartOnOpenModeValues.firstChat:
+				return StartOnOpenMode.firstChat;
+			case StartOnOpenModeValues.lastChat:
+				return StartOnOpenMode.lastChat;
+			case StartOnOpenModeValues.newChat:
+			default:
+				return StartOnOpenMode.newChat;
+		}
+	}
+
+	static String _startModeToJson(StartOnOpenMode mode) {
+		switch (mode) {
+			case StartOnOpenMode.firstChat:
+				return StartOnOpenModeValues.firstChat;
+			case StartOnOpenMode.lastChat:
+				return StartOnOpenModeValues.lastChat;
+			case StartOnOpenMode.newChat:
+			default:
+				return StartOnOpenModeValues.newChat;
+		}
+	}
 }
 
 class ThemeModeValues {
 	static const String system = 'system';
 	static const String light = 'light';
 	static const String dark = 'dark';
+}
+
+enum StartOnOpenMode { newChat, firstChat, lastChat }
+
+class StartOnOpenModeValues {
+	static const String newChat = 'newChat';
+	static const String firstChat = 'firstChat';
+	static const String lastChat = 'lastChat';
 }
 
 @JsonSerializable()

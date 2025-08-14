@@ -25,4 +25,5 @@ Map<String, dynamic> _$LlmModelToJson(LlmModel instance) => <String, dynamic>{
 const _$AiProviderTypeEnumMap = {
   AiProviderType.openAI: 'openAI',
   AiProviderType.deepSeek: 'deepSeek',
+  AiProviderType.mock: 'mock',
 };

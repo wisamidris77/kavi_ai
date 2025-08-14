@@ -3,6 +3,7 @@ import '../base/provider_config.dart';
 import '../base/provider_type.dart';
 import '../deepseek/deepseek_provider.dart';
 import '../openai/openai_provider.dart';
+import '../mock/mock_provider.dart';
 
 class AiProviderFactory {
   const AiProviderFactory._();
@@ -16,6 +17,8 @@ class AiProviderFactory {
         return OpenAiProvider(config);
       case AiProviderType.deepSeek:
         return DeepSeekProvider(config);
+      case AiProviderType.mock:
+        return MockProvider(config);
     }
   }
 } 

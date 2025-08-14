@@ -58,6 +58,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
 
   Future<void> _loadHistory() async {
     await _history.load();
+    // Start a fresh empty chat by default when opening the app
+    await _history.createNewChat();
     final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
     setState(() {
       _messages
@@ -81,6 +83,13 @@ class _ChatAiPageState extends State<ChatAiPage> {
     final ProviderSettings ps = s.providers[type] ?? const ProviderSettings(enabled: false, apiKey: '');
 
     _history.setDefaultProvider(type);
+
+    if (type == AiProviderType.mock) {
+      setState(() {
+        _chatService = MockAiChatService();
+      });
+      return;
+    }
 
     if (!ps.enabled || ps.apiKey.isEmpty) {
       setState(() {
@@ -255,6 +264,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
         return 'OpenAI';
       case AiProviderType.deepSeek:
         return 'DeepSeek';
+      case AiProviderType.mock:
+        return 'Mock';
     }
   }
 
@@ -263,34 +274,40 @@ class _ChatAiPageState extends State<ChatAiPage> {
     final AppSettings s = widget.settings.settings;
     final AiProviderType type = s.activeProvider;
     final ProviderSettings ps = s.providers[type] ?? const ProviderSettings(enabled: false, apiKey: '');
-    final String assistantLabel = ps.enabled
-        ? [
-            _providerLabel(type),
-            if (ps.defaultModel != null && ps.defaultModel!.isNotEmpty) ps.defaultModel!,
-          ].join(' • ')
-        : 'Assistant';
+    final String assistantLabel = [
+      _providerLabel(type),
+      if (ps.defaultModel != null && ps.defaultModel!.isNotEmpty) ps.defaultModel!,
+      if (ps.defaultModel == null || ps.defaultModel!.isEmpty)
+        if (type == AiProviderType.mock) 'mock-sim',
+    ].join(' • ');
 
     final bool isWide = MediaQuery.of(context).size.width >= 900;
     final ColorScheme colors = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 8,
-        leading: Builder(
-          builder: (context) {
-            if (isWide) return const SizedBox.shrink();
-            return IconButton(
-              tooltip: 'Menu',
-              icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            );
-          },
-        ),
-        title: Row(
-          children: [
-            if (!isWide) const SizedBox(width: 8),
-            const Text('KAVI'),
-          ],
+        automaticallyImplyLeading: !isWide,
+        titleSpacing: 12,
+        title: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTapDown: (details) => _openModelMenu(details.globalPosition),
+          child: Row(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('KAVI', style: TextStyle(fontWeight: FontWeight.w600)),
+                  if (assistantLabel.isNotEmpty)
+                    Text(
+                      assistantLabel,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                ],
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.expand_more, size: 18),
+            ],
+          ),
         ),
       ),
       drawer: isWide
@@ -352,6 +369,127 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
     _scrollToBottomDeferred();
   }
+
+  Future<void> _openModelMenu(Offset globalPosition) async {
+    final AppSettings s = widget.settings.settings;
+    final AiProviderType currentType = s.activeProvider;
+    final List<AiProviderType> types = AiProviderType.values;
+    final Map<AiProviderType, ProviderSettings> providersMap = s.providers;
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromLTRB(
+      globalPosition.dx,
+      globalPosition.dy,
+      overlay.size.width - globalPosition.dx,
+      overlay.size.height - globalPosition.dy,
+    );
+
+    final _ModelSelectionResult? result = await showMenu<_ModelSelectionResult>(
+      context: context,
+      position: position,
+      items: <PopupMenuEntry<_ModelSelectionResult>>[
+        PopupMenuItem<_ModelSelectionResult>(
+          enabled: false,
+          padding: EdgeInsets.zero,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Select model', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  ...types.map((t) {
+                    final ProviderSettings ts = providersMap[t] ?? const ProviderSettings(enabled: false, apiKey: '');
+                    final List<String> models = <String>{
+                      if (t == AiProviderType.mock) 'mock-sim',
+                      if (ts.defaultModel != null && ts.defaultModel!.isNotEmpty) ts.defaultModel!,
+                      ...ts.customModels,
+                    }.toList();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(_providerLabel(t), style: Theme.of(context).textTheme.labelMedium),
+                            ),
+                            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (models.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text('No models. Configure in Settings', style: Theme.of(context).textTheme.bodySmall),
+                          )
+                        else
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: models
+                                .map((m) => ChoiceChip(
+                                      label: Text(m),
+                                      selected: t == currentType && (ts.defaultModel == m || (t == AiProviderType.mock && m == 'mock-sim')),
+                                      onSelected: (_) {
+                                        Navigator.of(context).pop(_ModelSelectionResult(type: t, model: m));
+                                      },
+                                    ))
+                                .toList(),
+                          ),
+                        const SizedBox(height: 12),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+    if (!mounted) return;
+    if (result != null) {
+      final AppSettings current = widget.settings.settings;
+      final Map<AiProviderType, ProviderSettings> updatedProviders = Map<AiProviderType, ProviderSettings>.from(current.providers);
+      final ProviderSettings currentPs = updatedProviders[result.type] ?? const ProviderSettings(enabled: false, apiKey: '');
+      updatedProviders[result.type] = currentPs.copyWith(defaultModel: result.model);
+      final AppSettings updated = current.copyWith(activeProvider: result.type, providers: updatedProviders);
+      widget.settings.replaceSettings(updated, persist: true);
+      _applyProviderFromSettings();
+    }
+  }
+
+  Future<void> _verifyProvider(AiProviderType t) async {
+    final AppSettings s = widget.settings.settings;
+    final ProviderSettings ps = s.providers[t] ?? const ProviderSettings(enabled: false, apiKey: '');
+    if (!ps.enabled || (t != AiProviderType.mock && ps.apiKey.isEmpty)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enable and set API key first')));
+      return;
+    }
+    try {
+      final AiProviderConfig config = AiProviderConfig(apiKey: ps.apiKey, baseUrl: ps.baseUrl, defaultModel: ps.defaultModel);
+      final domain = ProviderAiChatService(providerType: t, config: config, model: ps.defaultModel);
+      final sub = domain.sendMessage(history: const [], prompt: 'ping').listen((_) {});
+      await sub.asFuture<void>();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${_providerLabel(t)} verified')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to verify ${_providerLabel(t)}')));
+    }
+  }
+
+}
+
+class _ModelSelectionResult {
+  final AiProviderType type;
+  final String? model;
+  _ModelSelectionResult({required this.type, this.model});
 }
 
 class _EmptyState extends StatelessWidget {

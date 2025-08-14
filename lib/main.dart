@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'presentation/presentation.dart';
 import 'settings/controller/settings_controller.dart';
 import 'settings/repository/settings_repository.dart';
+import 'presentation/onboarding/onboarding_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,7 +56,9 @@ class _MyAppState extends State<MyApp> {
           ),
           themeMode: mode,
           home: _loaded
-              ? ChatAiPage(settings: _settingsController)
+              ? (_settingsController.onboardingComplete
+                  ? ChatAiPage(settings: _settingsController)
+                  : OnboardingPage(controller: _settingsController))
               : const _LoadingScreen(),
         );
       },

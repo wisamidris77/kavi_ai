@@ -42,53 +42,61 @@ class ChatMessageBubble extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isUser ? colors.surfaceVariant : colors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: colors.outlineVariant,
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isUser && (assistantLabel != null && assistantLabel!.isNotEmpty))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        assistantLabel!,
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: isUser ? colors.surfaceVariant : colors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: colors.outlineVariant,
                     ),
-                  SelectableText(
-                    message.content,
-                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        tooltip: 'Copy message',
-                        icon: const Icon(Icons.content_copy),
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: message.content));
-                          onCopy?.call(message);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Message copied')));
-                        },
-                      ),
-                      if (showRegenerate)
-                        IconButton(
-                          tooltip: 'Regenerate',
-                          icon: const Icon(Icons.refresh),
-                          onPressed: onRegenerate,
+                      if (!isUser && (assistantLabel != null && assistantLabel!.isNotEmpty))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            assistantLabel!,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
                         ),
+                      _MessageMarkdown(content: message.content),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Copy message',
+                      icon: const Icon(Icons.content_copy, size: 18),
+                      padding: const EdgeInsets.all(4),
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: message.content));
+                        onCopy?.call(message);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Message copied')));
+                      },
+                    ),
+                    if (showRegenerate)
+                      IconButton(
+                        tooltip: 'Regenerate',
+                        icon: const Icon(Icons.refresh, size: 18),
+                        padding: const EdgeInsets.all(4),
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        onPressed: onRegenerate,
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -119,7 +127,7 @@ class _MessageMarkdown extends StatelessWidget {
           backgroundColor: Colors.transparent,
         ),
       ),
-      builders: const {
+      builders: {
         'pre': _CodeBlockBuilder(),
       },
       onTapLink: (text, href, title) {
@@ -130,7 +138,7 @@ class _MessageMarkdown extends StatelessWidget {
 }
 
 class _CodeBlockBuilder extends MarkdownElementBuilder {
-  const _CodeBlockBuilder();
+  _CodeBlockBuilder();
 
   @override
   Widget visitElementAfter(md.Element element, TextStyle? preferredStyle) {
@@ -164,7 +172,10 @@ class _CodeBlock extends StatelessWidget {
           right: 4,
           child: IconButton(
             tooltip: 'Copy code',
-            icon: const Icon(Icons.copy_all),
+            icon: const Icon(Icons.copy_all, size: 18),
+            padding: const EdgeInsets.all(4),
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: text));
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Code copied')));

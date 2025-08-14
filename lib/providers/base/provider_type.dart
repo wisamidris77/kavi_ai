@@ -2,4 +2,5 @@
 enum AiProviderType {
   openAI,
   deepSeek,
+  mock,
 } 

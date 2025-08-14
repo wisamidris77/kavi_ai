@@ -12,13 +12,23 @@ class SettingsController extends ChangeNotifier {
   AppSettings _settings = AppSettings.initial();
   AppSettings get settings => _settings;
 
+  bool _onboardingComplete = false;
+  bool get onboardingComplete => _onboardingComplete;
+
   Future<void> load() async {
     _settings = await _repository.load();
+    _onboardingComplete = await _repository.isOnboardingComplete();
     notifyListeners();
   }
 
   Future<void> save() async {
     await _repository.save(_settings);
+  }
+
+  Future<void> setOnboardingComplete(bool value) async {
+    _onboardingComplete = value;
+    notifyListeners();
+    await _repository.setOnboardingComplete(value);
   }
 
   /// Replace all settings at once.

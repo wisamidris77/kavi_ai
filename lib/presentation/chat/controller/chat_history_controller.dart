@@ -34,9 +34,8 @@ class ChatHistoryController extends ChangeNotifier {
 
   Future<void> load() async {
     _chats = await _repository.loadAll();
-    if (_chats.isNotEmpty) {
-      _activeChatId = _chats.first.id;
-    }
+    // Do not auto-select a chat; start with no active chat by default
+    _activeChatId = null;
     notifyListeners();
   }
 

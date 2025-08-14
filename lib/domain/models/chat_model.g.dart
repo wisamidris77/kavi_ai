@@ -31,4 +31,5 @@ Map<String, dynamic> _$ChatModelToJson(ChatModel instance) => <String, dynamic>{
 const _$AiProviderTypeEnumMap = {
   AiProviderType.openAI: 'openAI',
   AiProviderType.deepSeek: 'deepSeek',
+  AiProviderType.mock: 'mock',
 };

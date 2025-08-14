@@ -6,6 +6,7 @@ import '../models/app_settings.dart';
 
 class SettingsRepository {
   static const String _storageKey = 'app_settings_v1';
+  static const String _onboardingKey = 'onboarding_complete_v1';
 
   Future<AppSettings> load() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -25,5 +26,15 @@ class SettingsRepository {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String raw = jsonEncode(settings.toJson());
     await prefs.setString(_storageKey, raw);
+  }
+
+  Future<bool> isOnboardingComplete() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingKey) ?? false;
+  }
+
+  Future<void> setOnboardingComplete(bool value) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingKey, value);
   }
 } 

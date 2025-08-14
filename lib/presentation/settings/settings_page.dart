@@ -100,6 +100,14 @@ class _SettingsPageState extends State<SettingsPage> {
           final List<Widget> right = <Widget>[
             _SectionHeader(title: 'Providers'),
             const SizedBox(height: 8),
+            _ActiveProviderSelector(
+              value: _draft.activeProvider,
+              onChanged: (v) {
+                setState(() => _draft = _draft.copyWith(activeProvider: v));
+                widget.controller.replaceSettings(_draft, persist: false);
+              },
+            ),
+            const SizedBox(height: 12),
             ...AiProviderType.values.map((t) => _ProviderCard(
                   type: t,
                   settings: _draft.providers[t] ?? const ProviderSettings(enabled: false, apiKey: ''),
@@ -310,6 +318,10 @@ class _ProviderCardState extends State<_ProviderCard> {
                 ),
               ],
             ),
+            if (widget.type == AiProviderType.mock) ...[
+              const SizedBox(height: 8),
+              const Text('Uses built-in mock responses. No API key required.'),
+            ] else ...[
             const SizedBox(height: 8),
             TextFormField(
               initialValue: settings.apiKey,
@@ -361,6 +373,7 @@ class _ProviderCardState extends State<_ProviderCard> {
                 ),
               ],
             ),
+            ],
           ],
         ),
       ),
@@ -373,6 +386,27 @@ class _ProviderCardState extends State<_ProviderCard> {
         return 'OpenAI';
       case AiProviderType.deepSeek:
         return 'DeepSeek';
+      case AiProviderType.mock:
+        return 'Mock';
     }
+  }
+}
+
+class _ActiveProviderSelector extends StatelessWidget {
+  final AiProviderType value;
+  final ValueChanged<AiProviderType> onChanged;
+  const _ActiveProviderSelector({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<AiProviderType>(
+      segments: const <ButtonSegment<AiProviderType>>[
+        ButtonSegment(value: AiProviderType.openAI, label: Text('OpenAI'), icon: Icon(Icons.api)),
+        ButtonSegment(value: AiProviderType.deepSeek, label: Text('DeepSeek'), icon: Icon(Icons.bolt)),
+        ButtonSegment(value: AiProviderType.mock, label: Text('Mock'), icon: Icon(Icons.smart_toy_outlined)),
+      ],
+      selected: {value},
+      onSelectionChanged: (s) => onChanged(s.first),
+    );
   }
 } 
