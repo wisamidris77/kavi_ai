@@ -145,4 +145,28 @@ class ChatHistoryController extends ChangeNotifier {
     notifyListeners();
     await _persist();
   }
+
+  Future<void> removeLastAssistantMessage() async {
+    if (activeChat == null) return;
+    _chats = _chats.map((ChatModel c) {
+      if (c.id != (_activeChatId ?? '')) return c;
+      final List<domain_msg.ChatMessageModel> updated = List<domain_msg.ChatMessageModel>.from(c.messages);
+      for (int i = updated.length - 1; i >= 0; i--) {
+        if (updated[i].role == domain_role.ChatRole.assistant) {
+          updated.removeAt(i);
+          break;
+        }
+      }
+      return ChatModel(
+        id: c.id,
+        title: c.title,
+        providerType: c.providerType,
+        model: c.model,
+        messages: updated,
+        metadata: c.metadata,
+      );
+    }).toList();
+    notifyListeners();
+    await _persist();
+  }
 } 

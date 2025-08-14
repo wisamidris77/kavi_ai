@@ -22,7 +22,7 @@ class MockAiChatService implements AiChatService {
     Future<void>.microtask(() async {
       final StringBuffer accumulator = StringBuffer();
       for (int i = 0; i < simulated.length; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 16));
+        await Future<void>.delayed(Duration(milliseconds: _rand.nextInt(100)));
         accumulator.write(simulated[i]);
         if (controller.isClosed) break;
         controller.add(ChatMessage(
@@ -32,7 +32,7 @@ class MockAiChatService implements AiChatService {
           createdAt: DateTime.now(),
         ));
       }
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await Future<void>.delayed(Duration(milliseconds: _rand.nextInt(1000)));
       await controller.close();
       _controllersById.remove(messageId);
     });

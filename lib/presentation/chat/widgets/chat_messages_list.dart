@@ -6,8 +6,10 @@ class ChatMessagesList extends StatelessWidget {
   final List<ChatMessage> messages;
   final ScrollController? controller;
   final String? assistantLabel;
+  final VoidCallback? onRegenerateLast;
+  final void Function(ChatMessage message)? onCopyMessage;
 
-  const ChatMessagesList({super.key, required this.messages, this.controller, this.assistantLabel});
+  const ChatMessagesList({super.key, required this.messages, this.controller, this.assistantLabel, this.onRegenerateLast, this.onCopyMessage});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +18,14 @@ class ChatMessagesList extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       itemBuilder: (BuildContext context, int index) {
         final ChatMessage message = messages[index];
-        return ChatMessageBubble(message: message, assistantLabel: assistantLabel);
+        final bool isLastAssistant = message.role == ChatRole.assistant && index == messages.length - 1;
+        return ChatMessageBubble(
+          message: message,
+          assistantLabel: assistantLabel,
+          showRegenerate: isLastAssistant,
+          onRegenerate: isLastAssistant ? onRegenerateLast : null,
+          onCopy: onCopyMessage,
+        );
       },
       separatorBuilder: (BuildContext context, int index) => const SizedBox(height: 4),
       itemCount: messages.length,

@@ -165,6 +165,55 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
   }
 
+  Future<void> _regenerateLast() async {
+    // Find last user message content
+    String? lastUserContent;
+    for (int i = _messages.length - 1; i >= 0; i--) {
+      if (_messages[i].role == ChatRole.user) {
+        lastUserContent = _messages[i].content;
+        break;
+      }
+    }
+    if (lastUserContent == null || lastUserContent.trim().isEmpty) return;
+
+    // Remove the last assistant message from UI and history if present
+    if (_messages.isNotEmpty && _messages.last.role == ChatRole.assistant) {
+      setState(() {
+        _messages.removeLast();
+      });
+      await _history.removeLastAssistantMessage();
+    }
+
+    setState(() {
+      _isBusy = true;
+    });
+    _scrollToBottomDeferred();
+
+    _subscription?.cancel();
+    _subscription = _chatService
+        .sendMessage(history: List<ChatMessage>.from(_messages), prompt: lastUserContent)
+        .listen((ChatMessage assistantUpdate) async {
+      final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
+      setState(() {
+        if (existingIndex >= 0) {
+          _messages[existingIndex] = assistantUpdate;
+        } else {
+          _messages.add(assistantUpdate);
+        }
+      });
+      await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
+      _scrollToBottomDeferred();
+    }, onDone: () {
+      setState(() {
+        _isBusy = false;
+      });
+    }, onError: (_) {
+      setState(() {
+        _isBusy = false;
+      });
+    });
+  }
+
   void _scrollToBottomDeferred() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
@@ -222,8 +271,28 @@ class _ChatAiPageState extends State<ChatAiPage> {
         : 'Assistant';
 
     final bool isWide = MediaQuery.of(context).size.width >= 900;
+    final ColorScheme colors = Theme.of(context).colorScheme;
 
     return Scaffold(
+      appBar: AppBar(
+        titleSpacing: 8,
+        leading: Builder(
+          builder: (context) {
+            if (isWide) return const SizedBox.shrink();
+            return IconButton(
+              tooltip: 'Menu',
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            );
+          },
+        ),
+        title: Row(
+          children: [
+            if (!isWide) const SizedBox(width: 8),
+            const Text('KAVI'),
+          ],
+        ),
+      ),
       drawer: isWide
           ? null
           : Drawer(
@@ -253,12 +322,10 @@ class _ChatAiPageState extends State<ChatAiPage> {
           Expanded(
             child: Column(
               children: <Widget>[
-                _TopBar(showMenu: !isWide),
-                const Divider(height: 1),
                 Expanded(
                   child: _messages.isEmpty
                       ? const _EmptyState()
-                      : ChatMessagesList(messages: _messages, controller: _scrollController, assistantLabel: assistantLabel),
+                      : ChatMessagesList(messages: _messages, controller: _scrollController, assistantLabel: assistantLabel, onRegenerateLast: _regenerateLast, onCopyMessage: (_) {}),
                 ),
                 const Divider(height: 1),
                 ChatInput(
@@ -287,39 +354,6 @@ class _ChatAiPageState extends State<ChatAiPage> {
   }
 }
 
-class _TopBar extends StatelessWidget {
-  final bool showMenu;
-
-  const _TopBar({required this.showMenu});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: <Widget>[
-            if (showMenu)
-              Builder(
-                builder: (context) => IconButton(
-                  tooltip: 'Menu',
-                  icon: const Icon(Icons.menu),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              ),
-            Text(
-              'Chat',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const Spacer(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -330,7 +364,17 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.smart_toy_outlined, size: 48, color: colors.primary),
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: colors.primary,
+            child: Text(
+              'K',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: colors.onPrimary,
+                  ),
+            ),
+          ),
           const SizedBox(height: 12),
           Text('How can I help you today?', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 24),
@@ -338,4 +382,4 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
-} 
+}

@@ -28,14 +28,13 @@ class ChatSidebar extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
+              child: FilledButton.tonalIcon(
                 onPressed: onNewChat,
                 icon: const Icon(Icons.add),
                 label: const Text('New chat'),
               ),
             ),
           ),
-          const Divider(height: 1),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(8),

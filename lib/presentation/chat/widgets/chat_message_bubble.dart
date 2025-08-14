@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 import '../../../core/chat/chat_message.dart';
 
 class ChatMessageBubble extends StatelessWidget {
   final ChatMessage message;
   final String? assistantLabel;
+  final bool showRegenerate;
+  final VoidCallback? onRegenerate;
+  final void Function(ChatMessage message)? onCopy;
 
-  const ChatMessageBubble({super.key, required this.message, this.assistantLabel});
+  const ChatMessageBubble({super.key, required this.message, this.assistantLabel, this.showRegenerate = false, this.onRegenerate, this.onCopy});
 
   @override
   Widget build(BuildContext context) {
     final bool isUser = message.role == ChatRole.user;
     final ColorScheme colors = Theme.of(context).colorScheme;
+
+    final Color avatarBg = isUser ? colors.secondaryContainer : colors.primary;
+    final Color avatarFg = isUser ? colors.onSecondaryContainer : colors.onPrimary;
+    final String avatarText = isUser ? 'Y' : 'K';
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
@@ -20,12 +30,14 @@ class ChatMessageBubble extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: CircleAvatar(
-              radius: 16,
-              backgroundColor: isUser ? colors.primary : colors.secondaryContainer,
-              child: Icon(
-                isUser ? Icons.person : Icons.smart_toy_outlined,
-                color: isUser ? colors.onPrimary : colors.onSecondaryContainer,
-                size: 18,
+              radius: 18,
+              backgroundColor: avatarBg,
+              child: Text(
+                avatarText,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: avatarFg,
+                    ),
               ),
             ),
           ),
@@ -54,6 +66,27 @@ class ChatMessageBubble extends StatelessWidget {
                     message.content,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Copy message',
+                        icon: const Icon(Icons.content_copy),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: message.content));
+                          onCopy?.call(message);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Message copied')));
+                        },
+                      ),
+                      if (showRegenerate)
+                        IconButton(
+                          tooltip: 'Regenerate',
+                          icon: const Icon(Icons.refresh),
+                          onPressed: onRegenerate,
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -62,4 +95,83 @@ class ChatMessageBubble extends StatelessWidget {
       ),
     );
   }
-} 
+}
+
+class _MessageMarkdown extends StatelessWidget {
+  final String content;
+
+  const _MessageMarkdown({required this.content});
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    return MarkdownBody(
+      data: content,
+      selectable: true,
+      styleSheet: MarkdownStyleSheet(
+        codeblockDecoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.outlineVariant),
+        ),
+        code: const TextStyle(
+          fontFamily: 'monospace',
+          backgroundColor: Colors.transparent,
+        ),
+      ),
+      builders: const {
+        'pre': _CodeBlockBuilder(),
+      },
+      onTapLink: (text, href, title) {
+        if (href == null) return;
+      },
+    );
+  }
+}
+
+class _CodeBlockBuilder extends MarkdownElementBuilder {
+  const _CodeBlockBuilder();
+
+  @override
+  Widget visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    final String rawText = element.textContent;
+    return _CodeBlock(text: rawText);
+  }
+}
+
+class _CodeBlock extends StatelessWidget {
+  final String text;
+
+  const _CodeBlock({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: SelectableText(
+              text,
+              style: TextStyle(fontFamily: 'monospace', color: colors.onSurface),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: IconButton(
+            tooltip: 'Copy code',
+            icon: const Icon(Icons.copy_all),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: text));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Code copied')));
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
