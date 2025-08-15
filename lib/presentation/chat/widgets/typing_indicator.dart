@@ -8,21 +8,35 @@ class TypingIndicator extends StatefulWidget {
 }
 
 class _TypingIndicatorState extends State<TypingIndicator>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
+  late AnimationController _fadeController;
   late List<Animation<double>> _dotAnimations;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    
+    // Fade in animation
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeIn,
+    );
+    _fadeController.forward();
+    
+    // Dot animations
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     )..repeat();
 
     _dotAnimations = List.generate(3, (index) {
-      final start = index * 0.2;
-      final end = start + 0.6;
+      final delay = index * 0.15;
       return Tween<double>(
         begin: 0.0,
         end: 1.0,
@@ -30,8 +44,8 @@ class _TypingIndicatorState extends State<TypingIndicator>
         CurvedAnimation(
           parent: _animationController,
           curve: Interval(
-            start,
-            end,
+            delay,
+            delay + 0.5,
             curve: Curves.easeInOut,
           ),
         ),
