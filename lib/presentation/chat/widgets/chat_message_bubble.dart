@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:markdown/markdown.dart' as md;
+import 'package:gpt_markdown/gpt_markdown.dart';
 import '../../../core/chat/chat_message.dart';
 import 'tool_call_badge.dart';
 
@@ -119,116 +118,16 @@ class _MessageMarkdown extends StatelessWidget {
 
   const _MessageMarkdown({required this.content});
 
-  // Clean up incomplete markdown that might cause parser issues
-  String _sanitizeMarkdown(String text) {
-    // Handle incomplete code blocks
-    final codeBlockCount = '```'.allMatches(text).length;
-    if (codeBlockCount % 2 != 0) {
-      // Add closing code block if odd number
-      text += '\n```';
-    }
-    
-    // Handle incomplete inline code
-    final inlineCodeCount = RegExp(r'`(?!``)').allMatches(text).length;
-    if (inlineCodeCount % 2 != 0) {
-      text += '`';
-    }
-    
-    // Handle incomplete bold/italic markers
-    final boldCount = '**'.allMatches(text).length;
-    if (boldCount % 2 != 0) {
-      text += '**';
-    }
-    
-    final italicCount = RegExp(r'(?<!\*)\*(?!\*)').allMatches(text).length;
-    if (italicCount % 2 != 0) {
-      text += '*';
-    }
-    
-    return text;
-  }
-
   @override
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
-    final sanitizedContent = _sanitizeMarkdown(content);
     
-    try {
-      return MarkdownBody(
-        data: sanitizedContent,
-        selectable: true,
-        styleSheet: MarkdownStyleSheet(
-          codeblockDecoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: colors.outlineVariant),
-          ),
-          code: const TextStyle(
-            fontFamily: 'monospace',
-            backgroundColor: Colors.transparent,
-          ),
-        ),
-        builders: {
-          'pre': _CodeBlockBuilder(),
-        },
-        onTapLink: (text, href, title) {
-          if (href == null) return;
-        },
-      );
-    } catch (e) {
-      // Fallback to plain text if markdown parsing fails
-      print('Markdown parsing error: $e');
-      return SelectableText(content);
-    }
-  }
-}
-
-class _CodeBlockBuilder extends MarkdownElementBuilder {
-  _CodeBlockBuilder();
-
-  @override
-  Widget visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    final String rawText = element.textContent;
-    return _CodeBlock(text: rawText);
-  }
-}
-
-class _CodeBlock extends StatelessWidget {
-  final String text;
-
-  const _CodeBlock({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
-    return Stack(
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: SelectableText(
-              text,
-              style: TextStyle(fontFamily: 'monospace', color: colors.onSurface),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 4,
-          right: 4,
-          child: IconButton(
-            tooltip: 'Copy code',
-            icon: const Icon(Icons.copy_all, size: 18),
-            padding: const EdgeInsets.all(4),
-            visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: text));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Code copied')));
-            },
-          ),
-        ),
-      ],
+    return GptMarkdown(
+      content,
+      style: TextStyle(
+        color: colors.onSurface,
+        fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+      ),
     );
   }
 }

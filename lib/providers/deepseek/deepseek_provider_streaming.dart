@@ -51,6 +51,82 @@ class DeepSeekStreamingProvider extends AiProvider {
     };
   }
 
+  /// Parse flattened prompt back into structured messages
+  List<Map<String, String>> _parsePromptToMessages(String prompt) {
+    final messages = <Map<String, String>>[];
+    final lines = prompt.split('\n');
+    
+    String? currentRole;
+    final contentBuffer = StringBuffer();
+    
+    for (final line in lines) {
+      if (line.startsWith('System: ')) {
+        // Save previous message if exists
+        if (currentRole != null && contentBuffer.isNotEmpty) {
+          messages.add({
+            'role': currentRole,
+            'content': contentBuffer.toString().trim(),
+          });
+          contentBuffer.clear();
+        }
+        currentRole = 'system';
+        contentBuffer.writeln(line.substring(8)); // Remove "System: "
+      } else if (line.startsWith('User: ')) {
+        // Save previous message if exists
+        if (currentRole != null && contentBuffer.isNotEmpty) {
+          messages.add({
+            'role': currentRole,
+            'content': contentBuffer.toString().trim(),
+          });
+          contentBuffer.clear();
+        }
+        currentRole = 'user';
+        contentBuffer.writeln(line.substring(6)); // Remove "User: "
+      } else if (line.startsWith('Assistant: ')) {
+        // Save previous message if exists
+        if (currentRole != null && contentBuffer.isNotEmpty) {
+          messages.add({
+            'role': currentRole,
+            'content': contentBuffer.toString().trim(),
+          });
+          contentBuffer.clear();
+        }
+        currentRole = 'assistant';
+        final content = line.substring(11); // Remove "Assistant: "
+        if (content.isNotEmpty) {
+          contentBuffer.writeln(content);
+        }
+      } else if (line.startsWith('Tool: ')) {
+        // For tool messages, we'll include them as system messages
+        if (currentRole != null && contentBuffer.isNotEmpty) {
+          messages.add({
+            'role': currentRole,
+            'content': contentBuffer.toString().trim(),
+          });
+          contentBuffer.clear();
+        }
+        currentRole = 'system';
+        contentBuffer.writeln(line); // Keep the full tool result
+      } else if (currentRole != null) {
+        // Continue adding to current message
+        contentBuffer.writeln(line);
+      }
+    }
+    
+    // Add the last message if exists (but not if it's an empty assistant message)
+    if (currentRole != null && contentBuffer.isNotEmpty) {
+      final content = contentBuffer.toString().trim();
+      if (!(currentRole == 'assistant' && content.isEmpty)) {
+        messages.add({
+          'role': currentRole,
+          'content': content,
+        });
+      }
+    }
+    
+    return messages;
+  }
+
   @override
   void validate() {
     if (config.apiKey.isEmpty) {
@@ -68,11 +144,13 @@ class DeepSeekStreamingProvider extends AiProvider {
   }) async {
     validate();
     final uri = _buildUri(path: 'chat/completions');
+    
+    // Parse the flattened prompt into structured messages
+    final messages = _parsePromptToMessages(prompt);
+    
     final payload = <String, dynamic>{
       'model': model ?? defaultModel,
-      'messages': [
-        {'role': 'user', 'content': prompt}
-      ],
+      'messages': messages,
       'stream': false,
       if (temperature != null) 'temperature': temperature,
       if (maxTokens != null) 'max_tokens': maxTokens,
@@ -109,11 +187,13 @@ class DeepSeekStreamingProvider extends AiProvider {
   }) async* {
     validate();
     final uri = _buildUri(path: 'chat/completions');
+    
+    // Parse the flattened prompt into structured messages
+    final messages = _parsePromptToMessages(prompt);
+    
     final payload = <String, dynamic>{
       'model': model ?? defaultModel,
-      'messages': [
-        {'role': 'user', 'content': prompt}
-      ],
+      'messages': messages,
       'stream': true,
       if (temperature != null) 'temperature': temperature,
       if (maxTokens != null) 'max_tokens': maxTokens,

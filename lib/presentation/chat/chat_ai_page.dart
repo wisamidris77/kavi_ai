@@ -6,10 +6,12 @@ import '../../core/chat/chat_message.dart';
 import '../../core/chat/mock_ai_chat_service.dart';
 import '../../providers/providers.dart';
 import '../../core/chat/provider_ai_chat_service.dart';
+import '../../core/chat/mcp_ai_chat_service.dart';
 import '../settings/settings_page.dart';
 import '../../settings/controller/settings_controller.dart';
 import '../../settings/models/app_settings.dart';
 import '../../providers/base/provider_config.dart';
+import '../../mcp/controller/mcp_controller.dart';
 
 import 'widgets/chat_input.dart';
 import 'widgets/chat_messages_list.dart';
@@ -22,8 +24,14 @@ import '../../domain/models/chat_role.dart' as domain_role;
 class ChatAiPage extends StatefulWidget {
   final AiChatService? service;
   final SettingsController settings;
+  final McpController mcpController;
 
-  const ChatAiPage({super.key, this.service, required this.settings});
+  const ChatAiPage({
+    super.key, 
+    this.service, 
+    required this.settings,
+    required this.mcpController,
+  });
 
   @override
   State<ChatAiPage> createState() => _ChatAiPageState();
@@ -54,6 +62,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _history.addListener(_historyListener);
     unawaited(_loadHistory());
     widget.settings.addListener(_applyProviderFromSettings);
+    widget.mcpController.addListener(_applyProviderFromSettings);
     _applyProviderFromSettings();
   }
 
@@ -74,6 +83,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _subscription?.cancel();
     _scrollController.dispose();
     widget.settings.removeListener(_applyProviderFromSettings);
+    widget.mcpController.removeListener(_applyProviderFromSettings);
     _history.removeListener(_historyListener);
     super.dispose();
   }
@@ -108,15 +118,31 @@ class _ChatAiPageState extends State<ChatAiPage> {
       defaultModel: ps.defaultModel,
     );
 
-    setState(() {
-      _chatService = ProviderAiChatService(
-        providerType: type,
-        config: config,
-        model: ps.defaultModel,
-        temperature: s.defaultTemperature,
-        maxTokens: s.defaultMaxTokens,
-      );
-    });
+    // Check if MCP is enabled and connected
+    if (widget.mcpController.isEnabled && widget.mcpController.isConnected) {
+      print('MCP is connected, using McpAiChatService with ${widget.mcpController.mcpService.availableTools.length} tools');
+      setState(() {
+        _chatService = McpAiChatService(
+          providerType: type,
+          config: config,
+          mcpService: widget.mcpController.mcpService,
+          model: ps.defaultModel,
+          temperature: s.defaultTemperature,
+          maxTokens: s.defaultMaxTokens,
+        );
+      });
+    } else {
+      print('MCP not connected, using regular ProviderAiChatService');
+      setState(() {
+        _chatService = ProviderAiChatService(
+          providerType: type,
+          config: config,
+          model: ps.defaultModel,
+          temperature: s.defaultTemperature,
+          maxTokens: s.defaultMaxTokens,
+        );
+      });
+    }
   }
 
   void _openSettings() {

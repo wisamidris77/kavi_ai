@@ -68,8 +68,14 @@ class _MyAppState extends State<MyApp> {
           themeMode: mode,
           home: _loaded
               ? (_settingsController.onboardingComplete
-                  ? ChatAiPage(settings: _settingsController)
-                  : OnboardingPage(controller: _settingsController))
+                  ? ChatAiPage(
+                      settings: _settingsController,
+                      mcpController: _mcpController,
+                    )
+                  : OnboardingPage(
+                      controller: _settingsController,
+                      mcpController: _mcpController,
+                    ))
               : const _LoadingScreen(),
           routes: {
             '/settings': (context) => SettingsPage(controller: _settingsController),

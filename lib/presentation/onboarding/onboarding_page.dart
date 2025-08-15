@@ -4,11 +4,17 @@ import '../../providers/base/provider_type.dart';
 import '../../settings/controller/settings_controller.dart';
 import '../../settings/models/app_settings.dart';
 import '../chat/chat_ai_page.dart';
+import '../../mcp/controller/mcp_controller.dart';
 
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({super.key, required this.controller});
+  const OnboardingPage({
+    super.key, 
+    required this.controller,
+    required this.mcpController,
+  });
 
   final SettingsController controller;
+  final McpController mcpController;
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -58,7 +64,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     await widget.controller.setOnboardingComplete(true);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => ChatAiPage(settings: widget.controller)),
+      MaterialPageRoute(builder: (_) => ChatAiPage(
+        settings: widget.controller,
+        mcpController: widget.mcpController,
+      )),
     );
   }
 
@@ -67,7 +76,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     await widget.controller.setOnboardingComplete(true);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => ChatAiPage(settings: widget.controller)),
+      MaterialPageRoute(builder: (_) => ChatAiPage(
+        settings: widget.controller,
+        mcpController: widget.mcpController,
+      )),
     );
   }
 
