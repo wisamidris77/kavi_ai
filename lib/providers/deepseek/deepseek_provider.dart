@@ -11,6 +11,10 @@ class DeepSeekProvider extends AiProvider {
       : _http = Dio(BaseOptions(
           connectTimeout: config.timeout,
           receiveTimeout: config.timeout,
+          sendTimeout: config.timeout,
+          headers: {
+            'User-Agent': 'Kavi-AI/1.0',
+          },
         )),
         super(config);
 
@@ -23,7 +27,21 @@ class DeepSeekProvider extends AiProvider {
   String get defaultModel => config.defaultModel ?? 'deepseek-chat';
 
   Uri _buildUri({required String path}) {
-    final base = config.baseUrl?.replaceAll(RegExp(r'/$'), '') ?? 'https://api.deepseek.com/v1';
+    final baseUrl = config.baseUrl;
+    print('DeepSeek: baseUrl from config: "$baseUrl"');
+    
+    // Check if baseUrl is valid
+    if (baseUrl != null && baseUrl.isNotEmpty && !baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+      print('DeepSeek: Invalid base URL, using default');
+      final base = 'https://api.deepseek.com/v1';
+      return Uri.parse('$base/$path');
+    }
+    
+    final base = (baseUrl?.isEmpty ?? true) 
+        ? 'https://api.deepseek.com/v1'
+        : baseUrl!.replaceAll(RegExp(r'/$'), '');
+    
+    print('DeepSeek: Final base URL: "$base"');
     return Uri.parse('$base/$path');
   }
 
@@ -62,13 +80,37 @@ class DeepSeekProvider extends AiProvider {
       ...?parameters,
     };
 
-    final resp = await _http.postUri(uri, data: jsonEncode(payload), options: Options(headers: _headers()));
-    final data = resp.data is String ? jsonDecode(resp.data as String) : resp.data as Map<String, dynamic>;
-    final choices = data['choices'] as List<dynamic>?;
-    if (choices == null || choices.isEmpty) return '';
-    final message = (choices.first as Map<String, dynamic>)['message'] as Map<String, dynamic>?;
-    final content = message?['content'] as String?;
-    return content ?? '';
+    print('DeepSeek: Sending request to $uri');
+    print('DeepSeek: Model: ${model ?? defaultModel}');
+    print('DeepSeek: Message: $prompt');
+    
+    try {
+      final resp = await _http.postUri(
+        uri, 
+        data: jsonEncode(payload), 
+        options: Options(headers: _headers()),
+      );
+      
+      print('DeepSeek: Response received, status: ${resp.statusCode}');
+      
+      final data = resp.data is String ? jsonDecode(resp.data as String) : resp.data as Map<String, dynamic>;
+      final choices = data['choices'] as List<dynamic>?;
+      if (choices == null || choices.isEmpty) {
+        print('DeepSeek: No choices in response');
+        return '';
+      }
+      final message = (choices.first as Map<String, dynamic>)['message'] as Map<String, dynamic>?;
+      final content = message?['content'] as String?;
+      return content ?? '';
+    } catch (e) {
+      print('DeepSeek Error: $e');
+      if (e is DioException) {
+        print('DeepSeek DioException type: ${e.type}');
+        print('DeepSeek DioException message: ${e.message}');
+        print('DeepSeek DioException response: ${e.response?.data}');
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -79,13 +121,29 @@ class DeepSeekProvider extends AiProvider {
     int? maxTokens,
     Map<String, dynamic>? parameters,
   }) async* {
-    final full = await generateText(
-      prompt: prompt,
-      model: model,
-      temperature: temperature,
-      maxTokens: maxTokens,
-      parameters: parameters,
-    );
-    if (full.isNotEmpty) yield full;
+    // For now, use non-streaming mode as DeepSeek's streaming might have issues
+    print('DeepSeek Stream: Using non-streaming mode for reliability');
+    
+    try {
+      final full = await generateText(
+        prompt: prompt,
+        model: model,
+        temperature: temperature,
+        maxTokens: maxTokens,
+        parameters: parameters,
+      );
+      
+      // Simulate streaming by yielding chunks
+      const chunkSize = 20; // Characters per chunk
+      for (int i = 0; i < full.length; i += chunkSize) {
+        final end = (i + chunkSize < full.length) ? i + chunkSize : full.length;
+        yield full.substring(i, end);
+        // Small delay to simulate streaming
+        await Future.delayed(const Duration(milliseconds: 30));
+      }
+    } catch (e) {
+      print('DeepSeek Stream Error: $e');
+      rethrow;
+    }
   }
 } 

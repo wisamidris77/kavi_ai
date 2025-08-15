@@ -3,6 +3,9 @@ import 'presentation/presentation.dart';
 import 'settings/controller/settings_controller.dart';
 import 'settings/repository/settings_repository.dart';
 import 'presentation/onboarding/onboarding_page.dart';
+import 'presentation/settings/settings_page.dart';
+import 'presentation/settings/mcp_settings_page.dart';
+import 'mcp/controller/mcp_controller.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,12 +20,14 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late final SettingsController _settingsController;
+  late final McpController _mcpController;
   bool _loaded = false;
 
   @override
   void initState() {
     super.initState();
     _settingsController = SettingsController(SettingsRepository());
+    _mcpController = McpController(settingsController: _settingsController);
     _bootstrap();
   }
 
@@ -31,6 +36,12 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _loaded = true;
     });
+  }
+
+  @override
+  void dispose() {
+    _mcpController.dispose();
+    super.dispose();
   }
 
   @override
@@ -60,6 +71,10 @@ class _MyAppState extends State<MyApp> {
                   ? ChatAiPage(settings: _settingsController)
                   : OnboardingPage(controller: _settingsController))
               : const _LoadingScreen(),
+          routes: {
+            '/settings': (context) => SettingsPage(controller: _settingsController),
+            '/mcp-settings': (context) => McpSettingsPage(mcpController: _mcpController),
+          },
         );
       },
     );

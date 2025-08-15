@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../providers/base/provider_type.dart';
+import '../../mcp/models/mcp_server_config.dart';
 import '../models/app_settings.dart';
 import '../repository/settings_repository.dart';
 
@@ -120,5 +121,18 @@ class SettingsController extends ChangeNotifier {
     _settings = _settings.copyWith(defaultMaxTokens: value);
     notifyListeners();
     save();
+  }
+
+  // MCP-related methods
+  Future<void> updateMcpEnabled(bool enabled) async {
+    _settings = _settings.copyWith(mcpEnabled: enabled);
+    notifyListeners();
+    await save();
+  }
+
+  Future<void> updateMcpServers(List<McpServerConfig> servers) async {
+    _settings = _settings.copyWith(mcpServers: servers);
+    notifyListeners();
+    await save();
   }
 } 

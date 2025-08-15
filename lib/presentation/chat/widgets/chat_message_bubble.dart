@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../../../core/chat/chat_message.dart';
+import 'tool_call_badge.dart';
 
 class ChatMessageBubble extends StatelessWidget {
   final ChatMessage message;
@@ -69,6 +70,14 @@ class ChatMessageBubble extends StatelessWidget {
                     ],
                   ),
                 ),
+                // Tool call badges
+                if (message.toolCalls.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...message.toolCalls.map((toolCall) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: ToolCallBadge(toolCall: toolCall),
+                  )),
+                ],
                 const SizedBox(height: 4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -110,30 +119,67 @@ class _MessageMarkdown extends StatelessWidget {
 
   const _MessageMarkdown({required this.content});
 
+  // Clean up incomplete markdown that might cause parser issues
+  String _sanitizeMarkdown(String text) {
+    // Handle incomplete code blocks
+    final codeBlockCount = '```'.allMatches(text).length;
+    if (codeBlockCount % 2 != 0) {
+      // Add closing code block if odd number
+      text += '\n```';
+    }
+    
+    // Handle incomplete inline code
+    final inlineCodeCount = RegExp(r'`(?!``)').allMatches(text).length;
+    if (inlineCodeCount % 2 != 0) {
+      text += '`';
+    }
+    
+    // Handle incomplete bold/italic markers
+    final boldCount = '**'.allMatches(text).length;
+    if (boldCount % 2 != 0) {
+      text += '**';
+    }
+    
+    final italicCount = RegExp(r'(?<!\*)\*(?!\*)').allMatches(text).length;
+    if (italicCount % 2 != 0) {
+      text += '*';
+    }
+    
+    return text;
+  }
+
   @override
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
-    return MarkdownBody(
-      data: content,
-      selectable: true,
-      styleSheet: MarkdownStyleSheet(
-        codeblockDecoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceVariant,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colors.outlineVariant),
+    final sanitizedContent = _sanitizeMarkdown(content);
+    
+    try {
+      return MarkdownBody(
+        data: sanitizedContent,
+        selectable: true,
+        styleSheet: MarkdownStyleSheet(
+          codeblockDecoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colors.outlineVariant),
+          ),
+          code: const TextStyle(
+            fontFamily: 'monospace',
+            backgroundColor: Colors.transparent,
+          ),
         ),
-        code: const TextStyle(
-          fontFamily: 'monospace',
-          backgroundColor: Colors.transparent,
-        ),
-      ),
-      builders: {
-        'pre': _CodeBlockBuilder(),
-      },
-      onTapLink: (text, href, title) {
-        if (href == null) return;
-      },
-    );
+        builders: {
+          'pre': _CodeBlockBuilder(),
+        },
+        onTapLink: (text, href, title) {
+          if (href == null) return;
+        },
+      );
+    } catch (e) {
+      // Fallback to plain text if markdown parsing fails
+      print('Markdown parsing error: $e');
+      return SelectableText(content);
+    }
   }
 }
 

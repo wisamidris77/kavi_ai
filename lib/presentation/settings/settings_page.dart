@@ -104,7 +104,7 @@ class _SettingsPageState extends State<SettingsPage> {
               value: _draft.activeProvider,
               onChanged: (v) {
                 setState(() => _draft = _draft.copyWith(activeProvider: v));
-                widget.controller.replaceSettings(_draft, persist: false);
+                widget.controller.replaceSettings(_draft, persist: true);
               },
             ),
             const SizedBox(height: 12),
@@ -115,8 +115,30 @@ class _SettingsPageState extends State<SettingsPage> {
                     final current = Map<AiProviderType, ProviderSettings>.from(_draft.providers);
                     current[t] = updated;
                     setState(() => _draft = _draft.copyWith(providers: current));
+                    // Apply and save changes immediately
+                    widget.controller.replaceSettings(_draft, persist: true);
                   },
                 )),
+            const SizedBox(height: 24),
+            _SectionHeader(title: 'MCP Integration'),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.extension),
+              title: const Text('MCP Settings'),
+              subtitle: const Text('Configure Model Context Protocol servers'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                // Navigate to MCP settings if route is available
+                Navigator.pushNamed(context, '/mcp-settings').catchError((e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('MCP Settings route not configured. Use main_with_mcp.dart'),
+                    ),
+                  );
+                  return Future.value();
+                });
+              },
+            ),
           ];
 
           return SafeArea(
@@ -332,8 +354,27 @@ class _ProviderCardState extends State<_ProviderCard> {
             const SizedBox(height: 8),
             TextFormField(
               initialValue: settings.baseUrl ?? '',
-              decoration: const InputDecoration(labelText: 'Base URL (optional)', border: OutlineInputBorder(), isDense: true),
-              onChanged: (v) => widget.onChanged(settings.copyWith(baseUrl: v.isEmpty ? null : v)),
+              decoration: const InputDecoration(
+                labelText: 'Base URL (optional)', 
+                border: OutlineInputBorder(), 
+                isDense: true,
+                hintText: 'Leave empty for default',
+              ),
+              onChanged: (v) {
+                final trimmed = v.trim();
+                // Filter out invalid partial URLs
+                if (trimmed.isEmpty || 
+                    trimmed == 'http' || 
+                    trimmed == 'https' ||
+                    trimmed == 'http:' ||
+                    trimmed == 'https:' ||
+                    trimmed == 'http://' ||
+                    trimmed == 'https://') {
+                  widget.onChanged(settings.copyWith(baseUrl: null));
+                } else {
+                  widget.onChanged(settings.copyWith(baseUrl: trimmed));
+                }
+              },
             ),
             const SizedBox(height: 8),
             TextFormField(

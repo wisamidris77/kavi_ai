@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:flutter/material.dart';
 import '../../providers/base/provider_type.dart';
+import '../../mcp/models/mcp_server_config.dart';
 
 part 'app_settings.g.dart';
 
@@ -14,6 +15,8 @@ class AppSettings {
 		this.themeMode = ThemeMode.system,
 		this.primaryColorSeed = 0xFF673AB7,
 		this.startOnOpenMode = StartOnOpenMode.newChat,
+		this.mcpServers = const [],
+		this.mcpEnabled = false,
 	});
 
 	factory AppSettings.initial() => AppSettings(
@@ -50,6 +53,12 @@ class AppSettings {
 	@JsonKey(fromJson: _startModeFromJson, toJson: _startModeToJson)
 	final StartOnOpenMode startOnOpenMode;
 
+	@JsonKey(defaultValue: <McpServerConfig>[])
+	final List<McpServerConfig> mcpServers;
+
+	@JsonKey(defaultValue: false)
+	final bool mcpEnabled;
+
 	AppSettings copyWith({
 		AiProviderType? activeProvider,
 		Map<AiProviderType, ProviderSettings>? providers,
@@ -58,6 +67,8 @@ class AppSettings {
 		ThemeMode? themeMode,
 		int? primaryColorSeed,
 		StartOnOpenMode? startOnOpenMode,
+		List<McpServerConfig>? mcpServers,
+		bool? mcpEnabled,
 	}) {
 		return AppSettings(
 			activeProvider: activeProvider ?? this.activeProvider,
@@ -67,6 +78,8 @@ class AppSettings {
 			themeMode: themeMode ?? this.themeMode,
 			primaryColorSeed: primaryColorSeed ?? this.primaryColorSeed,
 			startOnOpenMode: startOnOpenMode ?? this.startOnOpenMode,
+			mcpServers: mcpServers ?? this.mcpServers,
+			mcpEnabled: mcpEnabled ?? this.mcpEnabled,
 		);
 	}
 
@@ -172,22 +185,56 @@ class ProviderSettings {
 	@JsonKey(defaultValue: <String>[])
 	final List<String> customModels;
 
-	ProviderSettings copyWith({
-		bool? enabled,
-		String? apiKey,
-		String? baseUrl,
-		String? defaultModel,
-		List<String>? customModels,
-	}) {
-		return ProviderSettings(
-			enabled: enabled ?? this.enabled,
-			apiKey: apiKey ?? this.apiKey,
-			baseUrl: baseUrl ?? this.baseUrl,
-			defaultModel: defaultModel ?? this.defaultModel,
-			customModels: customModels ?? this.customModels,
-		);
-	}
+	  ProviderSettings copyWith({
+    bool? enabled,
+    String? apiKey,
+    String? baseUrl,
+    String? defaultModel,
+    List<String>? customModels,
+  }) {
+    // Clean up invalid base URLs
+    String? cleanBaseUrl = baseUrl ?? this.baseUrl;
+    if (cleanBaseUrl != null && 
+        (cleanBaseUrl.isEmpty || 
+         cleanBaseUrl == 'http' || 
+         cleanBaseUrl == 'https' ||
+         cleanBaseUrl == 'http:' ||
+         cleanBaseUrl == 'https:' ||
+         cleanBaseUrl == 'http://' ||
+         cleanBaseUrl == 'https://')) {
+      cleanBaseUrl = null;
+    }
+    
+    return ProviderSettings(
+      enabled: enabled ?? this.enabled,
+      apiKey: apiKey ?? this.apiKey,
+      baseUrl: cleanBaseUrl,
+      defaultModel: defaultModel ?? this.defaultModel,
+      customModels: customModels ?? this.customModels,
+    );
+  }
 
-	factory ProviderSettings.fromJson(Map<String, dynamic> json) => _$ProviderSettingsFromJson(json);
-	Map<String, dynamic> toJson() => _$ProviderSettingsToJson(this);
+	  factory ProviderSettings.fromJson(Map<String, dynamic> json) {
+    final settings = _$ProviderSettingsFromJson(json);
+    // Clean up invalid base URLs when loading from JSON
+    if (settings.baseUrl != null && 
+        (settings.baseUrl!.isEmpty || 
+         settings.baseUrl == 'http' || 
+         settings.baseUrl == 'https' ||
+         settings.baseUrl == 'http:' ||
+         settings.baseUrl == 'https:' ||
+         settings.baseUrl == 'http://' ||
+         settings.baseUrl == 'https://')) {
+      return ProviderSettings(
+        enabled: settings.enabled,
+        apiKey: settings.apiKey,
+        baseUrl: null, // Clear invalid base URL
+        defaultModel: settings.defaultModel,
+        customModels: settings.customModels,
+      );
+    }
+    return settings;
+  }
+  
+  Map<String, dynamic> toJson() => _$ProviderSettingsToJson(this);
 } 

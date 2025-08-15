@@ -35,6 +35,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
   final ScrollController _scrollController = ScrollController();
   StreamSubscription<ChatMessage>? _subscription;
   bool _isBusy = false;
+  String? _activeMessageId;
 
   late final ChatHistoryController _history;
   late final VoidCallback _historyListener;
@@ -82,6 +83,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
     final AiProviderType type = s.activeProvider;
     final ProviderSettings ps = s.providers[type] ?? const ProviderSettings(enabled: false, apiKey: '');
 
+    print('Applying provider: $type, enabled: ${ps.enabled}, hasKey: ${ps.apiKey.isNotEmpty}');
+    
     _history.setDefaultProvider(type);
 
     if (type == AiProviderType.mock) {
@@ -92,6 +95,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     }
 
     if (!ps.enabled || ps.apiKey.isEmpty) {
+      print('Provider not enabled or no API key, falling back to mock');
       setState(() {
         _chatService = MockAiChatService();
       });
@@ -120,9 +124,20 @@ class _ChatAiPageState extends State<ChatAiPage> {
   }
 
   Future<void> _newChat() async {
+    // Cancel any active message generation
+    if (_subscription != null) {
+      await _subscription!.cancel();
+      _subscription = null;
+      if (_activeMessageId != null) {
+        await _chatService.abort(messageId: _activeMessageId!);
+        _activeMessageId = null;
+      }
+    }
+    
     await _history.createNewChat();
     setState(() {
       _messages.clear();
+      _isBusy = false;
     });
   }
 
@@ -150,9 +165,11 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _scrollToBottomDeferred();
 
     _subscription?.cancel();
+    _activeMessageId = null;
     _subscription = _chatService
         .sendMessage(history: List<ChatMessage>.from(_messages), prompt: text)
         .listen((ChatMessage assistantUpdate) async {
+      _activeMessageId = assistantUpdate.id;
       final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
       setState(() {
         if (existingIndex >= 0) {
@@ -166,10 +183,12 @@ class _ChatAiPageState extends State<ChatAiPage> {
     }, onDone: () {
       setState(() {
         _isBusy = false;
+        _activeMessageId = null;
       });
     }, onError: (_) {
       setState(() {
         _isBusy = false;
+        _activeMessageId = null;
       });
     });
   }
@@ -199,9 +218,11 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _scrollToBottomDeferred();
 
     _subscription?.cancel();
+    _activeMessageId = null;
     _subscription = _chatService
         .sendMessage(history: List<ChatMessage>.from(_messages), prompt: lastUserContent)
         .listen((ChatMessage assistantUpdate) async {
+      _activeMessageId = assistantUpdate.id;
       final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
       setState(() {
         if (existingIndex >= 0) {
@@ -215,10 +236,12 @@ class _ChatAiPageState extends State<ChatAiPage> {
     }, onDone: () {
       setState(() {
         _isBusy = false;
+        _activeMessageId = null;
       });
     }, onError: (_) {
       setState(() {
         _isBusy = false;
+        _activeMessageId = null;
       });
     });
   }
@@ -352,7 +375,14 @@ class _ChatAiPageState extends State<ChatAiPage> {
                 Expanded(
                   child: _messages.isEmpty
                       ? const _EmptyState()
-                      : ChatMessagesList(messages: _messages, controller: _scrollController, assistantLabel: assistantLabel, onRegenerateLast: _regenerateLast, onCopyMessage: (_) {}),
+                      : ChatMessagesList(
+                        messages: _messages, 
+                        controller: _scrollController, 
+                        assistantLabel: assistantLabel, 
+                        onRegenerateLast: _regenerateLast, 
+                        onCopyMessage: (_) {},
+                        isBusy: _isBusy,
+                      ),
                 ),
                 const Divider(height: 1),
                 ChatInput(
@@ -370,9 +400,20 @@ class _ChatAiPageState extends State<ChatAiPage> {
   }
 
   void _selectChat(String chatId) async {
+    // Cancel any active message generation
+    if (_subscription != null) {
+      await _subscription!.cancel();
+      _subscription = null;
+      if (_activeMessageId != null) {
+        await _chatService.abort(messageId: _activeMessageId!);
+        _activeMessageId = null;
+      }
+    }
+    
     await _history.selectChat(chatId);
     final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
     setState(() {
+      _isBusy = false;
       _messages
         ..clear()
         ..addAll(hist.map(_mapDomainToCore));

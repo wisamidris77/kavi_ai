@@ -20,6 +20,12 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) => AppSettings(
   startOnOpenMode: json['startOnOpenMode'] == null
       ? StartOnOpenMode.newChat
       : AppSettings._startModeFromJson(json['startOnOpenMode']),
+  mcpServers:
+      (json['mcpServers'] as List<dynamic>?)
+          ?.map((e) => McpServerConfig.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      [],
+  mcpEnabled: json['mcpEnabled'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
@@ -31,6 +37,8 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       'themeMode': AppSettings._themeModeToJson(instance.themeMode),
       'primaryColorSeed': instance.primaryColorSeed,
       'startOnOpenMode': AppSettings._startModeToJson(instance.startOnOpenMode),
+      'mcpServers': instance.mcpServers.map((e) => e.toJson()).toList(),
+      'mcpEnabled': instance.mcpEnabled,
     };
 
 const _$AiProviderTypeEnumMap = {
