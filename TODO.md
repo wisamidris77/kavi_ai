@@ -17,7 +17,7 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 - [x] **Smooth Animations** - Page transitions, message animations
 - [x] **Glass Morphism Effects** - Modern UI with blur and transparency
 - [x] **Custom Color Schemes** - User-selectable color themes
-- [ ] **Responsive Design** - Better tablet and desktop layouts
+- [x] **Responsive Design** - Better tablet and desktop layouts
 
 ### Message Display
 - [x] **Markdown Rendering** - Full markdown support in messages
@@ -26,18 +26,18 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 - [x] **Message Reactions** - Add emoji reactions to messages
 - [x] **Copy Code Button** - One-click code block copying
 - [x] **Message Timestamps** - Relative and absolute time display
-- [ ] **Message Grouping** - Group consecutive messages from same sender
+- [x] **Message Grouping** - Group consecutive messages from same sender
 
 ### Advanced Message Features
 - [ ] **Message Editing** - Edit user messages after sending
 - [ ] **Message Deletion** - Delete messages with confirmation
-- [ ] **Message Search** - Search through conversation history
-- [ ] **Message Pinning** - Pin important messages
+- [x] **Message Search** - Search through conversation history
+- [x] **Message Pinning** - Pin important messages
 - [ ] **Thread View** - Branching conversations support
 - [ ] **Message Bookmarks** - Bookmark important responses
 
 ### Keyboard & Shortcuts
-- [ ] **Keyboard Shortcuts** - Comprehensive keyboard navigation
+- [x] **Keyboard Shortcuts** - Comprehensive keyboard navigation
 - [ ] **Shortcut Customization** - User-defined shortcuts
 - [ ] **Quick Actions** - Fast access to common actions
 - [ ] **Vim Mode** - Optional vim-style navigation
