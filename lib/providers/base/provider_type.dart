@@ -3,6 +3,7 @@ enum AiProviderType {
   openAI,
   deepSeek,
   anthropic,
+  ollama,
   mock,
   gemini,
   mistral,

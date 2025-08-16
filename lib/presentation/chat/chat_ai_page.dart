@@ -392,6 +392,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
         return 'OpenAI';
       case AiProviderType.deepSeek:
         return 'DeepSeek';
+      case AiProviderType.ollama:
+        return 'Ollama';
       case AiProviderType.mock:
         return 'Mock';
     }
@@ -643,7 +645,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
   Future<void> _verifyProvider(AiProviderType t) async {
     final AppSettings s = widget.settings.settings;
     final ProviderSettings ps = s.providers[t] ?? const ProviderSettings(enabled: false, apiKey: '');
-    if (!ps.enabled || (t != AiProviderType.mock && ps.apiKey.isEmpty)) {
+    if (!ps.enabled || (t != AiProviderType.mock && t != AiProviderType.ollama && ps.apiKey.isEmpty)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enable and set API key first')));
       return;

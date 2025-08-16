@@ -44,6 +44,7 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
 const _$AiProviderTypeEnumMap = {
   AiProviderType.openAI: 'openAI',
   AiProviderType.deepSeek: 'deepSeek',
+  AiProviderType.ollama: 'ollama',
   AiProviderType.mock: 'mock',
 };
 

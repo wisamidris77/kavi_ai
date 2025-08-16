@@ -7,6 +7,7 @@ import '../anthropic/anthropic_provider.dart';
 import '../google/gemini_provider.dart';
 import '../mistral/mistral_provider.dart';
 import '../cohere/cohere_provider.dart';
+import '../ollama/ollama_provider.dart';
 import '../mock/mock_provider.dart';
 
 class AiProviderFactory {
@@ -29,6 +30,8 @@ class AiProviderFactory {
         return MistralProvider(config);
       case AiProviderType.cohere:
         return CohereProvider(config);
+      case AiProviderType.ollama:
+        return OllamaProvider(config);
       case AiProviderType.mock:
         return MockProvider(config);
     }

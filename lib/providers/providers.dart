@@ -8,4 +8,5 @@ export 'anthropic/anthropic_provider.dart';
 export 'google/gemini_provider.dart';
 export 'mistral/mistral_provider.dart';
 export 'cohere/cohere_provider.dart';
+export 'ollama/ollama_provider.dart';
 export 'mock/mock_provider.dart'; 
