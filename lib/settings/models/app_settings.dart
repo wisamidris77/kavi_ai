@@ -30,6 +30,12 @@ class AppSettings {
 					enabled: false,
 					apiKey: '',
 				),
+				AiProviderType.ollama: const ProviderSettings(
+					enabled: false,
+					apiKey: '', // Not used for Ollama but kept for consistency
+					baseUrl: 'http://localhost:11434',
+					defaultModel: 'llama3.2',
+				),
 			},
 		);
 
