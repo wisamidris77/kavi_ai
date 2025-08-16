@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import '../../core/chat/ai_chat_service.dart';
@@ -13,7 +14,7 @@ import '../../settings/models/app_settings.dart';
 import '../../providers/base/provider_config.dart';
 import '../../mcp/controller/mcp_controller.dart';
 
-import 'widgets/chat_input.dart';
+import 'widgets/enhanced_chat_input.dart';
 import 'widgets/chat_messages_list.dart';
 import 'widgets/chat_sidebar.dart';
 import '../chat/controller/chat_history_controller.dart';
@@ -219,6 +220,21 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
   }
 
+  void _onFilesSelected(List<File> files) {
+    // TODO: Handle file selection
+    // For now, just show a snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${files.length} file(s) selected'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _onClearFiles() {
+    // TODO: Clear attached files
+  }
+
   Future<void> _regenerateLast() async {
     // Find last user message content
     String? lastUserContent;
@@ -408,13 +424,16 @@ class _ChatAiPageState extends State<ChatAiPage> {
                         onRegenerateLast: _regenerateLast, 
                         onCopyMessage: (_) {},
                         isBusy: _isBusy,
+                        showTypingIndicator: true,
                       ),
                 ),
                 const Divider(height: 1),
-                ChatInput(
+                EnhancedChatInput(
                   isBusy: _isBusy,
                   onSend: _send,
                   onStop: _stop,
+                  onFilesSelected: _onFilesSelected,
+                  onClearFiles: _onClearFiles,
                 ),
               ],
             ),

@@ -4,4 +4,5 @@ export 'base/provider_type.dart';
 export 'factory/ai_provider_factory.dart';
 export 'openai/openai_provider.dart';
 export 'deepseek/deepseek_provider.dart';
+export 'anthropic/anthropic_provider.dart';
 export 'mock/mock_provider.dart'; 

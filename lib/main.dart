@@ -6,6 +6,7 @@ import 'presentation/onboarding/onboarding_page.dart';
 import 'presentation/settings/settings_page.dart';
 import 'presentation/settings/mcp_settings_page.dart';
 import 'mcp/controller/mcp_controller.dart';
+import 'presentation/splash/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,6 +23,7 @@ class _MyAppState extends State<MyApp> {
   late final SettingsController _settingsController;
   late final McpController _mcpController;
   bool _loaded = false;
+  bool _showSplash = true;
 
   @override
   void initState() {
@@ -35,6 +37,12 @@ class _MyAppState extends State<MyApp> {
     await _settingsController.load();
     setState(() {
       _loaded = true;
+    });
+  }
+
+  void _onSplashComplete() {
+    setState(() {
+      _showSplash = false;
     });
   }
 
@@ -66,20 +74,23 @@ class _MyAppState extends State<MyApp> {
             visualDensity: VisualDensity.standard,
           ),
           themeMode: mode,
-          home: _loaded
-              ? (_settingsController.onboardingComplete
-                  ? ChatAiPage(
-                      settings: _settingsController,
-                      mcpController: _mcpController,
-                    )
-                  : OnboardingPage(
-                      controller: _settingsController,
-                      mcpController: _mcpController,
-                    ))
-              : const _LoadingScreen(),
+          home: _showSplash
+              ? SplashScreen(onComplete: _onSplashComplete)
+              : _loaded
+                  ? (_settingsController.onboardingComplete
+                      ? ChatAiPage(
+                          settings: _settingsController,
+                          mcpController: _mcpController,
+                        )
+                      : OnboardingPage(
+                          controller: _settingsController,
+                          mcpController: _mcpController,
+                        ))
+                  : const _LoadingScreen(),
           routes: {
             '/settings': (context) => SettingsPage(controller: _settingsController),
             '/mcp-settings': (context) => McpSettingsPage(mcpController: _mcpController),
+            '/mcp-tools': (context) => McpToolsPage(mcpController: _mcpController),
           },
         );
       },

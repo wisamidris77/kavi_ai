@@ -5,11 +5,11 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 ## 🎨 UI/UX Enhancements
 
 ### Core UI Components
-- [ ] **Integrate Splash Screen** - Add the animated splash screen on app startup
-- [ ] **Replace Basic Chat Input** - Use EnhancedChatInput widget with file attachments
+- [x] **Integrate Splash Screen** - Add the animated splash screen on app startup
+- [x] **Replace Basic Chat Input** - Use EnhancedChatInput widget with file attachments
 - [ ] **Command Palette Integration** - Add Ctrl+K/Cmd+K command palette for quick actions
-- [ ] **Message Status Indicators** - Show sending, sent, error states for messages
-- [ ] **Typing Indicators** - Display when AI is generating response
+- [x] **Message Status Indicators** - Show sending, sent, error states for messages
+- [x] **Typing Indicators** - Display when AI is generating response
 - [ ] **Tool Call Badges** - Visual indicators for MCP tool executions
 
 ### Theme & Styling
@@ -45,7 +45,7 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 ## 🔧 MCP (Model Context Protocol) Integration
 
 ### Core MCP Features
-- [ ] **MCP Tools View Page** - Dedicated page for tool management
+- [x] **MCP Tools View Page** - Dedicated page for tool management
 - [ ] **Tool Execution UI** - Real-time progress and status
 - [ ] **Tool Result Formatting** - Beautiful display of tool outputs
 - [ ] **Tool Error Handling** - Graceful error display and recovery
@@ -69,7 +69,7 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 ## 🤖 AI Provider Enhancements
 
 ### Provider Support
-- [ ] **Complete Anthropic Provider** - Full Claude integration
+- [x] **Complete Anthropic Provider** - Full Claude integration
 - [ ] **Google Gemini Provider** - Add Gemini support
 - [ ] **Mistral Provider** - Add Mistral AI support
 - [ ] **Cohere Provider** - Add Cohere support
@@ -77,7 +77,7 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 - [ ] **Custom Provider API** - Support for custom endpoints
 
 ### Provider Features
-- [ ] **Streaming for All Providers** - Consistent streaming support
+- [x] **Streaming for All Providers** - Consistent streaming support
 - [ ] **Provider Health Checks** - Test provider connectivity
 - [ ] **Model Switching UI** - Quick model selection
 - [ ] **Model Comparison** - Compare responses from different models
@@ -287,15 +287,15 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 ## 🎯 Priority Order
 
 ### Phase 1: Core Improvements (Week 1-2)
-1. Integrate splash screen
-2. Replace chat input with EnhancedChatInput
-3. Add message status indicators
-4. Complete MCP tools view
-5. Implement typing indicators
+1. ✅ Integrate splash screen
+2. ✅ Replace chat input with EnhancedChatInput
+3. ✅ Add message status indicators
+4. ✅ Complete MCP tools view
+5. ✅ Implement typing indicators
 
 ### Phase 2: Provider Enhancement (Week 3-4)
-1. Complete Anthropic provider
-2. Add streaming for all providers
+1. ✅ Complete Anthropic provider
+2. ✅ Add streaming for all providers
 3. Implement token tracking
 4. Add provider health checks
 5. Error handling improvements
