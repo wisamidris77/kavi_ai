@@ -348,6 +348,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
         return 'OpenAI';
       case AiProviderType.deepSeek:
         return 'DeepSeek';
+      case AiProviderType.ollama:
+        return 'Ollama';
       default:
         return t.name;
     }
