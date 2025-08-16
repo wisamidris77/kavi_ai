@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../mcp/controller/mcp_controller.dart';
 import '../../mcp/models/mcp_tool.dart';
 import '../../mcp/service/mcp_integration_service.dart';
+import '../../mcp/models/mcp_tools_storage.dart';
 
 class McpToolsPage extends StatefulWidget {
   final McpController mcpController;
@@ -21,12 +22,39 @@ class _McpToolsPageState extends State<McpToolsPage>
   String _searchQuery = '';
   String _selectedCategory = 'All';
   List<String> _categories = ['All'];
+  
+  final McpToolsStorage _storage = McpToolsStorage();
+  List<String> _favorites = [];
+  List<ToolExecutionRecord> _history = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _updateCategories();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final favorites = await _storage.loadFavorites();
+      final history = await _storage.loadHistory();
+      
+      setState(() {
+        _favorites = favorites;
+        _history = history;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -201,14 +229,12 @@ class _McpToolsPageState extends State<McpToolsPage>
                   itemCount: tools.length,
                   itemBuilder: (context, index) {
                     final tool = tools[index];
+                    final toolKey = _getToolKey(tool);
+                    final isFavorite = _favorites.contains(toolKey);
                     return _ToolCard(
                       tool: tool,
-                      onFavorite: () {
-                        // TODO: Implement favorites
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Added ${tool.name} to favorites')),
-                        );
-                      },
+                      isFavorite: isFavorite,
+                      onFavorite: () => _toggleFavorite(tool),
                       onExecute: () => _showToolExecutionDialog(tool),
                     );
                   },
@@ -219,32 +245,90 @@ class _McpToolsPageState extends State<McpToolsPage>
   }
 
   Widget _buildFavoritesTab() {
-    // TODO: Implement favorites functionality
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.favorite_border, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('No favorite tools yet'),
-          Text('Add tools to favorites for quick access'),
-        ],
-      ),
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    final favoriteTools = _getFilteredTools().where((tool) {
+      final toolKey = _getToolKey(tool);
+      return _favorites.contains(toolKey);
+    }).toList();
+    
+    if (favoriteTools.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.favorite_border, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('No favorite tools yet'),
+            Text('Add tools to favorites for quick access'),
+          ],
+        ),
+      );
+    }
+    
+    return ListView.builder(
+      itemCount: favoriteTools.length,
+      itemBuilder: (context, index) {
+        final tool = favoriteTools[index];
+        return _ToolCard(
+          tool: tool,
+          isFavorite: true,
+          onFavorite: () => _toggleFavorite(tool),
+          onExecute: () => _showToolExecutionDialog(tool),
+        );
+      },
     );
   }
 
+  String _getToolKey(McpTool tool) {
+    // Generate a unique key for the tool
+    return '${tool.name}_${tool.description.hashCode}';
+  }
+
+  Future<void> _toggleFavorite(McpTool tool) async {
+    final toolKey = _getToolKey(tool);
+    final isFavorite = _favorites.contains(toolKey);
+    
+    if (isFavorite) {
+      await _storage.removeFromFavorites(toolKey);
+      setState(() {
+        _favorites.remove(toolKey);
+      });
+    } else {
+      await _storage.addToFavorites(toolKey);
+      setState(() {
+        _favorites.add(toolKey);
+      });
+    }
+  }
+
   Widget _buildHistoryTab() {
-    // TODO: Implement execution history
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.history, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('No execution history yet'),
-          Text('Tool executions will appear here'),
-        ],
-      ),
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (_history.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('No execution history yet'),
+            Text('Tool executions will appear here'),
+          ],
+        ),
+      );
+    }
+    
+    return ListView.builder(
+      itemCount: _history.length,
+      itemBuilder: (context, index) {
+        final record = _history[index];
+        return _HistoryCard(record: record);
+      },
     );
   }
 
@@ -258,11 +342,13 @@ class _McpToolsPageState extends State<McpToolsPage>
 
 class _ToolCard extends StatelessWidget {
   final McpTool tool;
+  final bool isFavorite;
   final VoidCallback onFavorite;
   final VoidCallback onExecute;
 
   const _ToolCard({
     required this.tool,
+    this.isFavorite = false,
     required this.onFavorite,
     required this.onExecute,
   });
@@ -290,9 +376,12 @@ class _ToolCard extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.favorite_border),
+                  icon: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorite ? Colors.red : null,
+                  ),
                   onPressed: onFavorite,
-                  tooltip: 'Add to favorites',
+                  tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
                 ),
                 IconButton(
                   icon: const Icon(Icons.play_arrow),
@@ -374,14 +463,50 @@ class _ToolExecutionDialogState extends State<_ToolExecutionDialog> {
     });
 
     try {
-      // TODO: Implement actual tool execution
-      await Future.delayed(const Duration(seconds: 2)); // Simulate execution
+      // Prepare arguments from form controllers
+      final arguments = <String, dynamic>{};
+      for (final entry in _controllers.entries) {
+        final value = entry.value.text.trim();
+        if (value.isNotEmpty) {
+          arguments[entry.key] = value;
+        }
+      }
+      
+      // Execute the tool through MCP service
+      final result = await mcpService.executeToolCall(
+        toolKey: widget.tool.name,
+        arguments: arguments.isNotEmpty ? arguments : null,
+      );
+      
+      final record = ToolExecutionRecord(
+        toolKey: widget.tool.name,
+        toolName: widget.tool.name,
+        timestamp: DateTime.now(),
+        arguments: arguments.isNotEmpty ? arguments : null,
+        result: result.$1.content,
+        duration: Duration(milliseconds: 1000), // Approximate
+      );
+      
+      // Save to history
+      await _storage.addToHistory(record);
       
       setState(() {
-        _result = 'Tool executed successfully!\n\nParameters:\n${_controllers.entries.map((e) => '${e.key}: ${e.value.text}').join('\n')}';
+        _result = result.$1.content;
         _isExecuting = false;
       });
     } catch (e) {
+      final record = ToolExecutionRecord(
+        toolKey: widget.tool.name,
+        toolName: widget.tool.name,
+        timestamp: DateTime.now(),
+        arguments: _controllers.map((k, v) => MapEntry(k, v.text)),
+        error: e.toString(),
+        duration: Duration(milliseconds: 1000), // Approximate
+      );
+      
+      // Save error to history
+      await _storage.addToHistory(record);
+      
       setState(() {
         _error = e.toString();
         _isExecuting = false;
@@ -474,5 +599,125 @@ class _ToolExecutionDialogState extends State<_ToolExecutionDialog> {
         ),
       ],
     );
+  }
+}
+
+class _HistoryCard extends StatelessWidget {
+  final ToolExecutionRecord record;
+
+  const _HistoryCard({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  record.error != null ? Icons.error : Icons.check_circle,
+                  color: record.error != null ? Colors.red : Colors.green,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    record.toolName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Text(
+                  _formatDuration(record.duration),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _formatTimestamp(record.timestamp),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (record.arguments != null && record.arguments!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Arguments: ${record.arguments!.entries.map((e) => '${e.key}=${e.value}').join(', ')}',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+            if (record.error != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  record.error!,
+                  style: TextStyle(
+                    color: colorScheme.onErrorContainer,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+            if (record.result != null && record.result!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  record.result!,
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    if (duration.inSeconds < 1) {
+      return '${duration.inMilliseconds}ms';
+    } else if (duration.inMinutes < 1) {
+      return '${duration.inSeconds}s';
+    } else {
+      return '${duration.inMinutes}m ${duration.inSeconds % 60}s';
+    }
   }
 }

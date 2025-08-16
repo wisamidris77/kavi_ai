@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
 import '../../domain/models/chat_role.dart' as domain_role;
+import '../../core/search/search_storage_service.dart';
 
 class MessageSearch extends StatefulWidget {
   final List<domain_msg.ChatMessage> messages;
@@ -23,6 +25,7 @@ class MessageSearch extends StatefulWidget {
 class _MessageSearchState extends State<MessageSearch> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final SearchStorageService _storage = SearchStorageService();
   
   String _searchQuery = '';
   SearchFilter _currentFilter = SearchFilter.all;
@@ -33,7 +36,7 @@ class _MessageSearchState extends State<MessageSearch> {
   @override
   void initState() {
     super.initState();
-    _loadSearchHistory();
+    unawaited(_loadSearchHistory());
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -44,18 +47,21 @@ class _MessageSearchState extends State<MessageSearch> {
     super.dispose();
   }
 
-  void _loadSearchHistory() {
-    // TODO: Load from persistent storage
-    _searchHistory = [
-      'hello',
-      'how to',
-      'explain',
-      'code',
-      'error',
-    ];
+  Future<void> _loadSearchHistory() async {
+    try {
+      final history = await _storage.loadSearchHistory();
+      setState(() {
+        _searchHistory = history;
+      });
+    } catch (e) {
+      // Fallback to empty list
+      setState(() {
+        _searchHistory = [];
+      });
+    }
   }
 
-  void _saveSearchHistory() {
+  Future<void> _saveSearchHistory() async {
     if (_searchQuery.isNotEmpty && !_searchHistory.contains(_searchQuery)) {
       setState(() {
         _searchHistory.insert(0, _searchQuery);
@@ -63,7 +69,12 @@ class _MessageSearchState extends State<MessageSearch> {
           _searchHistory = _searchHistory.take(10).toList();
         }
       });
-      // TODO: Save to persistent storage
+      
+      try {
+        await _storage.addToSearchHistory(_searchQuery);
+      } catch (e) {
+        // Silently handle storage errors
+      }
     }
   }
 

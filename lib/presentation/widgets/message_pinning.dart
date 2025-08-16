@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
+import '../../core/pinning/pinning_storage_service.dart';
 
 class MessagePinning extends StatefulWidget {
   final List<domain_msg.ChatMessage> pinnedMessages;
@@ -242,6 +244,7 @@ class _PinnedMessageTile extends StatelessWidget {
 class PinnedMessageManager extends ChangeNotifier {
   final List<domain_msg.ChatMessage> _pinnedMessages = [];
   final Set<String> _pinnedMessageIds = {};
+  final PinningStorageService _storage = PinningStorageService();
 
   List<domain_msg.ChatMessage> get pinnedMessages => List.unmodifiable(_pinnedMessages);
 
@@ -274,14 +277,61 @@ class PinnedMessageManager extends ChangeNotifier {
     _savePinnedMessages();
   }
 
-  void _savePinnedMessages() {
-    // TODO: Save to persistent storage
-    // This would typically save the message IDs to SharedPreferences or a database
+  Future<void> _savePinnedMessages() async {
+    try {
+      final pinnedMessages = _pinnedMessages.map((message) {
+        return PinnedMessageRecord(
+          messageId: message.id,
+          chatId: message.chatId ?? '',
+          content: message.content,
+          role: message.role.name,
+          timestamp: message.createdAt,
+        );
+      }).toList();
+      
+      await _storage.savePinnedMessages(pinnedMessages);
+    } catch (e) {
+      // Silently handle storage errors
+    }
   }
 
-  void loadPinnedMessages() {
-    // TODO: Load from persistent storage
-    // This would typically load the message IDs and reconstruct the messages
+  Future<void> loadPinnedMessages() async {
+    try {
+      final records = await _storage.loadPinnedMessages();
+      
+      _pinnedMessages.clear();
+      _pinnedMessageIds.clear();
+      
+      for (final record in records) {
+        final message = domain_msg.ChatMessageModel(
+          id: record.messageId,
+          role: _parseRole(record.role),
+          content: record.content,
+          createdAt: record.timestamp,
+          chatId: record.chatId,
+        );
+        
+        _pinnedMessages.add(message);
+        _pinnedMessageIds.add(message.id);
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      // Silently handle storage errors
+    }
+  }
+
+  domain_msg.ChatRole _parseRole(String role) {
+    switch (role.toLowerCase()) {
+      case 'user':
+        return domain_msg.ChatRole.user;
+      case 'assistant':
+        return domain_msg.ChatRole.assistant;
+      case 'system':
+        return domain_msg.ChatRole.system;
+      default:
+        return domain_msg.ChatRole.user;
+    }
   }
 }
 

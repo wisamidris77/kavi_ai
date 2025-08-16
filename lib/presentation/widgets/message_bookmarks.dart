@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
+import '../../core/bookmarks/bookmarks_storage_service.dart';
 
 class MessageBookmarks extends StatefulWidget {
   final List<BookmarkedMessage> bookmarkedMessages;
@@ -536,6 +538,7 @@ class _BookmarkMessageDialogState extends State<BookmarkMessageDialog> {
 
 class BookmarkManager extends ChangeNotifier {
   final Map<String, BookmarkedMessage> _bookmarks = {};
+  final BookmarksStorageService _storage = BookmarksStorageService();
 
   List<BookmarkedMessage> get bookmarks => _bookmarks.values.toList();
 
@@ -580,11 +583,67 @@ class BookmarkManager extends ChangeNotifier {
     }
   }
 
-  void _saveBookmarks() {
-    // TODO: Save to persistent storage
+  Future<void> _saveBookmarks() async {
+    try {
+      final bookmarks = _bookmarks.values.map((bookmark) {
+        return BookmarkRecord(
+          messageId: bookmark.message.id,
+          chatId: bookmark.message.chatId ?? '',
+          content: bookmark.message.content,
+          role: bookmark.message.role.name,
+          timestamp: bookmark.message.createdAt,
+          note: bookmark.note,
+          tags: bookmark.tags,
+        );
+      }).toList();
+      
+      await _storage.saveBookmarks(bookmarks);
+    } catch (e) {
+      // Silently handle storage errors
+    }
   }
 
-  void loadBookmarks() {
-    // TODO: Load from persistent storage
+  Future<void> loadBookmarks() async {
+    try {
+      final records = await _storage.loadBookmarks();
+      
+      _bookmarks.clear();
+      for (final record in records) {
+        final message = domain_msg.ChatMessageModel(
+          id: record.messageId,
+          role: _parseRole(record.role),
+          content: record.content,
+          createdAt: record.timestamp,
+          chatId: record.chatId,
+        );
+        
+        final bookmark = BookmarkedMessage(
+          message: message,
+          note: record.note,
+          category: record.tags.isNotEmpty ? record.tags.first : 'General',
+          bookmarkedAt: record.createdAt,
+          tags: record.tags,
+        );
+        
+        _bookmarks[record.messageId] = bookmark;
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      // Silently handle storage errors
+    }
+  }
+
+  domain_msg.ChatRole _parseRole(String role) {
+    switch (role.toLowerCase()) {
+      case 'user':
+        return domain_msg.ChatRole.user;
+      case 'assistant':
+        return domain_msg.ChatRole.assistant;
+      case 'system':
+        return domain_msg.ChatRole.system;
+      default:
+        return domain_msg.ChatRole.user;
+    }
   }
 }
