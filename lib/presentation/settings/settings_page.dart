@@ -343,14 +343,19 @@ class _ProviderCardState extends State<_ProviderCard> {
             if (widget.type == AiProviderType.mock) ...[
               const SizedBox(height: 8),
               const Text('Uses built-in mock responses. No API key required.'),
+            ] else if (widget.type == AiProviderType.ollama) ...[
+              const SizedBox(height: 8),
+              const Text('Local Ollama instance. No API key required.'),
             ] else ...[
-            const SizedBox(height: 8),
-            TextFormField(
-              initialValue: settings.apiKey,
-              decoration: const InputDecoration(labelText: 'API Key', border: OutlineInputBorder(), isDense: true),
-              obscureText: true,
-              onChanged: (v) => widget.onChanged(settings.copyWith(apiKey: v)),
-            ),
+            if (widget.type != AiProviderType.ollama) ...[
+              const SizedBox(height: 8),
+              TextFormField(
+                initialValue: settings.apiKey,
+                decoration: const InputDecoration(labelText: 'API Key', border: OutlineInputBorder(), isDense: true),
+                obscureText: true,
+                onChanged: (v) => widget.onChanged(settings.copyWith(apiKey: v)),
+              ),
+            ],
             const SizedBox(height: 8),
             TextFormField(
               initialValue: settings.baseUrl ?? '',
@@ -427,6 +432,8 @@ class _ProviderCardState extends State<_ProviderCard> {
         return 'OpenAI';
       case AiProviderType.deepSeek:
         return 'DeepSeek';
+      case AiProviderType.ollama:
+        return 'Ollama';
       case AiProviderType.mock:
         return 'Mock';
     }
@@ -444,6 +451,7 @@ class _ActiveProviderSelector extends StatelessWidget {
       segments: const <ButtonSegment<AiProviderType>>[
         ButtonSegment(value: AiProviderType.openAI, label: Text('OpenAI'), icon: Icon(Icons.api)),
         ButtonSegment(value: AiProviderType.deepSeek, label: Text('DeepSeek'), icon: Icon(Icons.bolt)),
+        ButtonSegment(value: AiProviderType.ollama, label: Text('Ollama'), icon: Icon(Icons.computer)),
         ButtonSegment(value: AiProviderType.mock, label: Text('Mock'), icon: Icon(Icons.smart_toy_outlined)),
       ],
       selected: {value},

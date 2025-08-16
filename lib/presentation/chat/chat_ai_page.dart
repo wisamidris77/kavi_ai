@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/chat/ai_chat_service.dart';
 import '../../core/chat/chat_message.dart';
 import '../../core/chat/mock_ai_chat_service.dart';
@@ -13,10 +15,15 @@ import '../../settings/models/app_settings.dart';
 import '../../providers/base/provider_config.dart';
 import '../../mcp/controller/mcp_controller.dart';
 
-import 'widgets/chat_input.dart';
+import 'widgets/enhanced_chat_input.dart';
 import 'widgets/chat_messages_list.dart';
 import 'widgets/chat_sidebar.dart';
+import '../widgets/command_palette.dart';
 import '../chat/controller/chat_history_controller.dart';
+
+class _OpenCommandPaletteIntent extends Intent {
+  const _OpenCommandPaletteIntent();
+}
 import '../chat/repository/chat_history_repository.dart';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
 import '../../domain/models/chat_role.dart' as domain_role;
@@ -41,9 +48,11 @@ class _ChatAiPageState extends State<ChatAiPage> {
   late AiChatService _chatService;
   final List<ChatMessage> _messages = <ChatMessage>[];
   final ScrollController _scrollController = ScrollController();
+  final FileHandlerService _fileHandler = FileHandlerService();
   StreamSubscription<ChatMessage>? _subscription;
   bool _isBusy = false;
   String? _activeMessageId;
+  List<FileInfo> _attachedFiles = [];
 
   late final ChatHistoryController _history;
   late final VoidCallback _historyListener;
@@ -219,6 +228,105 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
   }
 
+  void _onFilesSelected(List<File> files) async {
+    try {
+      final fileInfos = <FileInfo>[];
+      
+      for (final file in files) {
+        final fileInfo = _fileHandler.getFileInfo(file);
+        fileInfos.add(fileInfo);
+      }
+      
+      setState(() {
+        _attachedFiles.addAll(fileInfos);
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${files.length} file(s) attached'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error attaching files: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  void _onClearFiles() {
+    setState(() {
+      _attachedFiles.clear();
+    });
+  }
+
+  void _removeFile(FileInfo fileInfo) {
+    setState(() {
+      _attachedFiles.remove(fileInfo);
+    });
+  }
+
+  void _showCommandPalette() {
+    final actions = [
+      CommandAction(
+        title: 'New Chat',
+        description: 'Start a new conversation',
+        icon: Icons.add,
+        shortcut: 'Ctrl+N',
+        onExecute: _newChat,
+        keywords: ['new', 'start', 'conversation'],
+      ),
+      CommandAction(
+        title: 'Open Settings',
+        description: 'Configure app settings',
+        icon: Icons.settings,
+        shortcut: 'Ctrl+,',
+        onExecute: _openSettings,
+        keywords: ['settings', 'config', 'preferences'],
+      ),
+      CommandAction(
+        title: 'MCP Tools',
+        description: 'Manage MCP tools and servers',
+        icon: Icons.build,
+        shortcut: 'Ctrl+T',
+        onExecute: () => Navigator.of(context).pushNamed('/mcp-tools'),
+        keywords: ['tools', 'mcp', 'servers'],
+      ),
+      CommandAction(
+        title: 'MCP Settings',
+        description: 'Configure MCP servers',
+        icon: Icons.settings_applications,
+        onExecute: () => Navigator.of(context).pushNamed('/mcp-settings'),
+        keywords: ['mcp', 'settings', 'servers'],
+      ),
+      CommandAction(
+        title: 'Regenerate Last Response',
+        description: 'Regenerate the last assistant response',
+        icon: Icons.refresh,
+        shortcut: 'Ctrl+R',
+        onExecute: _regenerateLast,
+        keywords: ['regenerate', 'retry', 'response'],
+      ),
+      CommandAction(
+        title: 'Clear Chat',
+        description: 'Clear current conversation',
+        icon: Icons.clear_all,
+        onExecute: () {
+          setState(() {
+            _messages.clear();
+          });
+        },
+        keywords: ['clear', 'reset', 'conversation'],
+      ),
+    ];
+
+    CommandPaletteController.show(context, actions: actions);
+  }
+
   Future<void> _regenerateLast() async {
     // Find last user message content
     String? lastUserContent;
@@ -313,6 +421,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
         return 'OpenAI';
       case AiProviderType.deepSeek:
         return 'DeepSeek';
+      case AiProviderType.ollama:
+        return 'Ollama';
       case AiProviderType.mock:
         return 'Mock';
     }
@@ -333,7 +443,19 @@ class _ChatAiPageState extends State<ChatAiPage> {
     final bool isWide = MediaQuery.of(context).size.width >= 900;
     final ColorScheme colors = Theme.of(context).colorScheme;
 
-    return Scaffold(
+    return Shortcuts(
+      shortcuts: {
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): const _OpenCommandPaletteIntent(),
+      },
+      child: Actions(
+        actions: {
+          _OpenCommandPaletteIntent: CallbackAction<_OpenCommandPaletteIntent>(
+            onInvoke: (_) => _showCommandPalette(),
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: !isWide,
         titleSpacing: isWide ? 20 : 0,
@@ -408,19 +530,28 @@ class _ChatAiPageState extends State<ChatAiPage> {
                         onRegenerateLast: _regenerateLast, 
                         onCopyMessage: (_) {},
                         isBusy: _isBusy,
+                        showTypingIndicator: true,
                       ),
                 ),
                 const Divider(height: 1),
-                ChatInput(
+                EnhancedChatInput(
                   isBusy: _isBusy,
                   onSend: _send,
                   onStop: _stop,
+                  onFilesSelected: _onFilesSelected,
+                  onClearFiles: _onClearFiles,
+                  attachedFiles: _attachedFiles,
+                  onRemoveFile: _removeFile,
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
         ],
+      ),
+        ),
+        ),
+        ),
       ),
     );
   }
@@ -545,7 +676,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
   Future<void> _verifyProvider(AiProviderType t) async {
     final AppSettings s = widget.settings.settings;
     final ProviderSettings ps = s.providers[t] ?? const ProviderSettings(enabled: false, apiKey: '');
-    if (!ps.enabled || (t != AiProviderType.mock && ps.apiKey.isEmpty)) {
+    if (!ps.enabled || (t != AiProviderType.mock && t != AiProviderType.ollama && ps.apiKey.isEmpty)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enable and set API key first')));
       return;
