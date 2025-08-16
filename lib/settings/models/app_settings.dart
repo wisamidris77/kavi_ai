@@ -30,6 +30,10 @@ class AppSettings {
 					enabled: false,
 					apiKey: '',
 				),
+				AiProviderType.anthropic: const ProviderSettings(
+					enabled: false,
+					apiKey: '',
+				),
 			},
 		);
 
