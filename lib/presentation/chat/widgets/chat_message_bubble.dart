@@ -4,14 +4,32 @@ import 'package:gpt_markdown/gpt_markdown.dart';
 import '../../../core/chat/chat_message.dart';
 import 'tool_call_badge.dart';
 
+enum MessageStatus {
+  sending,
+  sent,
+  error,
+  delivered,
+}
+
 class ChatMessageBubble extends StatelessWidget {
   final ChatMessage message;
   final String? assistantLabel;
   final bool showRegenerate;
   final VoidCallback? onRegenerate;
   final void Function(ChatMessage message)? onCopy;
+  final MessageStatus? status;
+  final String? errorMessage;
 
-  const ChatMessageBubble({super.key, required this.message, this.assistantLabel, this.showRegenerate = false, this.onRegenerate, this.onCopy});
+  const ChatMessageBubble({
+    super.key, 
+    required this.message, 
+    this.assistantLabel, 
+    this.showRegenerate = false, 
+    this.onRegenerate, 
+    this.onCopy,
+    this.status,
+    this.errorMessage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +99,15 @@ class ChatMessageBubble extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Status indicator
+                    if (status != null && message.role == ChatRole.user)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _MessageStatusIndicator(
+                          status: status!,
+                          errorMessage: errorMessage,
+                        ),
+                      ),
                     IconButton(
                       tooltip: 'Copy message',
                       icon: const Icon(Icons.content_copy, size: 18),
@@ -129,5 +156,53 @@ class _MessageMarkdown extends StatelessWidget {
         fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
       ),
     );
+  }
+}
+
+class _MessageStatusIndicator extends StatelessWidget {
+  final MessageStatus status;
+  final String? errorMessage;
+
+  const _MessageStatusIndicator({
+    required this.status,
+    this.errorMessage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    
+    switch (status) {
+      case MessageStatus.sending:
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+          ),
+        );
+      case MessageStatus.sent:
+        return Icon(
+          Icons.check,
+          size: 16,
+          color: colors.primary,
+        );
+      case MessageStatus.delivered:
+        return Icon(
+          Icons.done_all,
+          size: 16,
+          color: colors.primary,
+        );
+      case MessageStatus.error:
+        return Tooltip(
+          message: errorMessage ?? 'Error sending message',
+          child: Icon(
+            Icons.error_outline,
+            size: 16,
+            color: colors.error,
+          ),
+        );
+    }
   }
 }
