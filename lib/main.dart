@@ -52,7 +52,7 @@ class _MyAppState extends State<MyApp> {
         final seed = Color(_settingsController.settings.primaryColorSeed);
         final mode = _settingsController.settings.themeMode;
         return MaterialApp(
-          title: 'Zavi AI',
+          title: 'Kavi AI',
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light),

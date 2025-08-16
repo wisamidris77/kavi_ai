@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/chat/chat_message.dart';
 import 'chat_message_bubble.dart';
-import 'typing_indicator.dart';
 
 class ChatMessagesList extends StatelessWidget {
   final List<ChatMessage> messages;
@@ -23,18 +22,10 @@ class ChatMessagesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool showTypingIndicator = isBusy && (messages.isEmpty || messages.last.role != ChatRole.assistant);
-    final int itemCount = messages.length + (showTypingIndicator ? 1 : 0);
-    
     return ListView.separated(
       controller: controller,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       itemBuilder: (BuildContext context, int index) {
-        // Show typing indicator as the last item if we're busy
-        if (index == messages.length && showTypingIndicator) {
-          return TypingIndicator(label: assistantLabel);
-        }
-        
         final ChatMessage message = messages[index];
         final bool isLastAssistant = message.role == ChatRole.assistant && index == messages.length - 1;
         return ChatMessageBubble(
@@ -46,7 +37,7 @@ class ChatMessagesList extends StatelessWidget {
         );
       },
       separatorBuilder: (BuildContext context, int index) => const SizedBox(height: 4),
-      itemCount: itemCount,
+      itemCount: messages.length,
     );
   }
 } 

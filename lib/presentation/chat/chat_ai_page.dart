@@ -313,8 +313,6 @@ class _ChatAiPageState extends State<ChatAiPage> {
         return 'OpenAI';
       case AiProviderType.deepSeek:
         return 'DeepSeek';
-      case AiProviderType.anthropic:
-        return 'Anthropic';
       case AiProviderType.mock:
         return 'Mock';
     }
@@ -354,7 +352,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('ZAVI', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text('KAVI', style: TextStyle(fontWeight: FontWeight.bold)),
                         if (assistantLabel.isNotEmpty)
                           Text(
                             assistantLabel,
@@ -583,17 +581,17 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-                      CircleAvatar(
-              radius: 28,
-              backgroundColor: colors.primary,
-              child: Text(
-                'Z',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: colors.onPrimary,
-                    ),
-              ),
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: colors.primary,
+            child: Text(
+              'K',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: colors.onPrimary,
+                  ),
             ),
+          ),
           const SizedBox(height: 12),
           Text('How can I help you today?', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 24),
