@@ -15,17 +15,17 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 ### Theme & Styling
 - [x] **Improved Theme Consistency** - Better dark/light theme support
 - [x] **Smooth Animations** - Page transitions, message animations
-- [ ] **Glass Morphism Effects** - Modern UI with blur and transparency
-- [ ] **Custom Color Schemes** - User-selectable color themes
+- [x] **Glass Morphism Effects** - Modern UI with blur and transparency
+- [x] **Custom Color Schemes** - User-selectable color themes
 - [ ] **Responsive Design** - Better tablet and desktop layouts
 
 ### Message Display
 - [x] **Markdown Rendering** - Full markdown support in messages
 - [x] **Code Syntax Highlighting** - Syntax highlighting for code blocks
 - [ ] **LaTeX Math Rendering** - Support for mathematical expressions
-- [ ] **Message Reactions** - Add emoji reactions to messages
+- [x] **Message Reactions** - Add emoji reactions to messages
 - [x] **Copy Code Button** - One-click code block copying
-- [ ] **Message Timestamps** - Relative and absolute time display
+- [x] **Message Timestamps** - Relative and absolute time display
 - [ ] **Message Grouping** - Group consecutive messages from same sender
 
 ### Advanced Message Features
@@ -70,9 +70,9 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 
 ### Provider Support
 - [x] **Complete Anthropic Provider** - Full Claude integration
-- [ ] **Google Gemini Provider** - Add Gemini support
-- [ ] **Mistral Provider** - Add Mistral AI support
-- [ ] **Cohere Provider** - Add Cohere support
+- [x] **Google Gemini Provider** - Add Gemini support
+- [x] **Mistral Provider** - Add Mistral AI support
+- [x] **Cohere Provider** - Add Cohere support
 - [ ] **Local LLM Support** - Ollama/LM Studio integration
 - [ ] **Custom Provider API** - Support for custom endpoints
 

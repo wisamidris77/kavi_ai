@@ -4,4 +4,7 @@ enum AiProviderType {
   deepSeek,
   anthropic,
   mock,
+  gemini,
+  mistral,
+  cohere,
 } 

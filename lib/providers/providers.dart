@@ -5,4 +5,7 @@ export 'factory/ai_provider_factory.dart';
 export 'openai/openai_provider.dart';
 export 'deepseek/deepseek_provider.dart';
 export 'anthropic/anthropic_provider.dart';
+export 'google/gemini_provider.dart';
+export 'mistral/mistral_provider.dart';
+export 'cohere/cohere_provider.dart';
 export 'mock/mock_provider.dart'; 
