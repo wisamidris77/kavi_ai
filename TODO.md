@@ -7,24 +7,24 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 ### Core UI Components
 - [x] **Integrate Splash Screen** - Add the animated splash screen on app startup
 - [x] **Replace Basic Chat Input** - Use EnhancedChatInput widget with file attachments
-- [ ] **Command Palette Integration** - Add Ctrl+K/Cmd+K command palette for quick actions
+- [x] **Command Palette Integration** - Add Ctrl+K/Cmd+K command palette for quick actions
 - [x] **Message Status Indicators** - Show sending, sent, error states for messages
 - [x] **Typing Indicators** - Display when AI is generating response
-- [ ] **Tool Call Badges** - Visual indicators for MCP tool executions
+- [x] **Tool Call Badges** - Visual indicators for MCP tool executions
 
 ### Theme & Styling
-- [ ] **Improved Theme Consistency** - Better dark/light theme support
-- [ ] **Smooth Animations** - Page transitions, message animations
+- [x] **Improved Theme Consistency** - Better dark/light theme support
+- [x] **Smooth Animations** - Page transitions, message animations
 - [ ] **Glass Morphism Effects** - Modern UI with blur and transparency
 - [ ] **Custom Color Schemes** - User-selectable color themes
 - [ ] **Responsive Design** - Better tablet and desktop layouts
 
 ### Message Display
-- [ ] **Markdown Rendering** - Full markdown support in messages
-- [ ] **Code Syntax Highlighting** - Syntax highlighting for code blocks
+- [x] **Markdown Rendering** - Full markdown support in messages
+- [x] **Code Syntax Highlighting** - Syntax highlighting for code blocks
 - [ ] **LaTeX Math Rendering** - Support for mathematical expressions
 - [ ] **Message Reactions** - Add emoji reactions to messages
-- [ ] **Copy Code Button** - One-click code block copying
+- [x] **Copy Code Button** - One-click code block copying
 - [ ] **Message Timestamps** - Relative and absolute time display
 - [ ] **Message Grouping** - Group consecutive messages from same sender
 
@@ -78,21 +78,21 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 
 ### Provider Features
 - [x] **Streaming for All Providers** - Consistent streaming support
-- [ ] **Provider Health Checks** - Test provider connectivity
+- [x] **Provider Health Checks** - Test provider connectivity
 - [ ] **Model Switching UI** - Quick model selection
 - [ ] **Model Comparison** - Compare responses from different models
 - [ ] **Fallback Providers** - Automatic fallback on errors
 
 ### Usage & Monitoring
-- [ ] **Token Usage Tracking** - Real-time token counting
-- [ ] **Cost Estimation** - Show estimated costs per message
+- [x] **Token Usage Tracking** - Real-time token counting
+- [x] **Cost Estimation** - Show estimated costs per message
 - [ ] **Usage Analytics** - Daily/monthly usage stats
 - [ ] **Rate Limiting** - Respect API rate limits
 - [ ] **Quota Warnings** - Alert before hitting limits
 
 ### Error Handling
-- [ ] **Retry Logic** - Exponential backoff on failures
-- [ ] **Error Recovery** - Graceful degradation
+- [x] **Retry Logic** - Exponential backoff on failures
+- [x] **Error Recovery** - Graceful degradation
 - [ ] **Offline Mode** - Queue messages when offline
 - [ ] **Connection Status** - Visual connection indicators
 
@@ -296,16 +296,16 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 ### Phase 2: Provider Enhancement (Week 3-4)
 1. ✅ Complete Anthropic provider
 2. ✅ Add streaming for all providers
-3. Implement token tracking
-4. Add provider health checks
-5. Error handling improvements
+3. ✅ Implement token tracking
+4. ✅ Add provider health checks
+5. ✅ Error handling improvements
 
 ### Phase 3: UI Polish (Week 5-6)
-1. Markdown rendering
-2. Code syntax highlighting
-3. Command palette
-4. Theme improvements
-5. Animations
+1. ✅ Markdown rendering
+2. ✅ Code syntax highlighting
+3. ✅ Command palette
+4. ✅ Theme improvements
+5. ✅ Animations
 
 ### Phase 4: Advanced Features (Week 7-8)
 1. Voice features
