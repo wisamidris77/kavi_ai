@@ -52,7 +52,7 @@ class AnthropicProvider extends AiProvider {
     }
 
     if (parameters != null) {
-      requestBody.addAll(parameters);
+      requestBody.addAll(parameters as Map<String, Object>);
     }
 
     final request = http.Request('POST', Uri.parse('$_baseUrl/messages'));
