@@ -1,6 +1,6 @@
-# 📋 ZAVI AI - Complete TODO List
+# 📋 Kavi AI - Complete TODO List
 
-A comprehensive list of all features and improvements planned for Zavi AI, a powerful chat application with MCP (Model Context Protocol) integration.
+A comprehensive list of all features and improvements planned for Kavi AI, a powerful chat application with MCP (Model Context Protocol) integration.
 
 ## 🎨 UI/UX Enhancements
 
@@ -246,7 +246,7 @@ A comprehensive list of all features and improvements planned for Zavi AI, a pow
 - [ ] **Push Notifications** - Message notifications
 - [ ] **App Shortcuts** - Quick actions from home
 - [ ] **Widget Support** - Home screen widgets
-- [ ] **Share Extension** - Share to Zavi
+- [ ] **Share Extension** - Share to Kavi
 
 ### Desktop Specific
 - [ ] **System Tray** - Minimize to tray
