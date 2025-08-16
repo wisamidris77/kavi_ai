@@ -22,19 +22,19 @@ A comprehensive list of all features and improvements planned for Kavi AI, a pow
 ### Message Display
 - [x] **Markdown Rendering** - Full markdown support in messages
 - [x] **Code Syntax Highlighting** - Syntax highlighting for code blocks
-- [ ] **LaTeX Math Rendering** - Support for mathematical expressions
+- [x] **LaTeX Math Rendering** - Support for mathematical expressions
 - [x] **Message Reactions** - Add emoji reactions to messages
 - [x] **Copy Code Button** - One-click code block copying
 - [x] **Message Timestamps** - Relative and absolute time display
 - [x] **Message Grouping** - Group consecutive messages from same sender
 
 ### Advanced Message Features
-- [ ] **Message Editing** - Edit user messages after sending
-- [ ] **Message Deletion** - Delete messages with confirmation
+- [x] **Message Editing** - Edit user messages after sending
+- [x] **Message Deletion** - Delete messages with confirmation
 - [x] **Message Search** - Search through conversation history
 - [x] **Message Pinning** - Pin important messages
-- [ ] **Thread View** - Branching conversations support
-- [ ] **Message Bookmarks** - Bookmark important responses
+- [x] **Thread View** - Branching conversations support
+- [x] **Message Bookmarks** - Bookmark important responses
 
 ### Keyboard & Shortcuts
 - [x] **Keyboard Shortcuts** - Comprehensive keyboard navigation
