@@ -48,9 +48,11 @@ class _ChatAiPageState extends State<ChatAiPage> {
   late AiChatService _chatService;
   final List<ChatMessage> _messages = <ChatMessage>[];
   final ScrollController _scrollController = ScrollController();
+  final FileHandlerService _fileHandler = FileHandlerService();
   StreamSubscription<ChatMessage>? _subscription;
   bool _isBusy = false;
   String? _activeMessageId;
+  List<FileInfo> _attachedFiles = [];
 
   late final ChatHistoryController _history;
   late final VoidCallback _historyListener;
@@ -226,19 +228,46 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
   }
 
-  void _onFilesSelected(List<File> files) {
-    // TODO: Handle file selection
-    // For now, just show a snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${files.length} file(s) selected'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  void _onFilesSelected(List<File> files) async {
+    try {
+      final fileInfos = <FileInfo>[];
+      
+      for (final file in files) {
+        final fileInfo = _fileHandler.getFileInfo(file);
+        fileInfos.add(fileInfo);
+      }
+      
+      setState(() {
+        _attachedFiles.addAll(fileInfos);
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${files.length} file(s) attached'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error attaching files: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _onClearFiles() {
-    // TODO: Clear attached files
+    setState(() {
+      _attachedFiles.clear();
+    });
+  }
+
+  void _removeFile(FileInfo fileInfo) {
+    setState(() {
+      _attachedFiles.remove(fileInfo);
+    });
   }
 
   void _showCommandPalette() {
@@ -511,6 +540,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
                   onStop: _stop,
                   onFilesSelected: _onFilesSelected,
                   onClearFiles: _onClearFiles,
+                  attachedFiles: _attachedFiles,
+                  onRemoveFile: _removeFile,
                 ),
               ],
             ),

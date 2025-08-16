@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
+import '../../core/thread/thread_storage_service.dart';
 
 class ThreadView extends StatefulWidget {
   final List<ThreadMessage> threadMessages;
@@ -260,6 +262,7 @@ class ThreadMessage {
 
 class ThreadManager extends ChangeNotifier {
   final Map<String, ThreadMessage> _threadMessages = {};
+  final ThreadStorageService _storage = ThreadStorageService();
   final Map<String, List<String>> _threadHierarchy = {};
 
   List<ThreadMessage> get allThreadMessages => _threadMessages.values.toList();
@@ -362,12 +365,73 @@ class ThreadManager extends ChangeNotifier {
     return threadMessage?.childMessageIds.length ?? 0;
   }
 
-  void _saveThreadData() {
-    // TODO: Save to persistent storage
+  Future<void> _saveThreadData() async {
+    try {
+      final threads = _threadMessages.values.map((threadMessage) {
+        return ThreadRecord(
+          parentMessageId: threadMessage.parentMessage.id,
+          chatId: threadMessage.parentMessage.chatId ?? '',
+          parentContent: threadMessage.parentMessage.content,
+          parentTimestamp: threadMessage.parentMessage.createdAt,
+          replies: threadMessage.childMessageIds.map((childId) {
+            final childMessage = _threadMessages[childId]?.parentMessage;
+            return ThreadReply(
+              id: childId,
+              content: childMessage?.content ?? '',
+              role: childMessage?.role.name ?? 'user',
+              timestamp: childMessage?.createdAt ?? DateTime.now(),
+            );
+          }).toList(),
+        );
+      }).toList();
+      
+      await _storage.saveThreads(threads);
+    } catch (e) {
+      // Silently handle storage errors
+    }
   }
 
-  void loadThreadData() {
-    // TODO: Load from persistent storage
+  Future<void> loadThreadData() async {
+    try {
+      final records = await _storage.loadThreads();
+      
+      _threadMessages.clear();
+      for (final record in records) {
+        final parentMessage = domain_msg.ChatMessageModel(
+          id: record.parentMessageId,
+          role: _parseRole(record.role),
+          content: record.parentContent,
+          createdAt: record.parentTimestamp,
+          chatId: record.chatId,
+        );
+        
+        final childMessageIds = record.replies.map((r) => r.id).toList();
+        
+        final threadMessage = ThreadMessage(
+          parentMessage: parentMessage,
+          childMessageIds: childMessageIds,
+        );
+        
+        _threadMessages[record.parentMessageId] = threadMessage;
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      // Silently handle storage errors
+    }
+  }
+
+  domain_msg.ChatRole _parseRole(String role) {
+    switch (role.toLowerCase()) {
+      case 'user':
+        return domain_msg.ChatRole.user;
+      case 'assistant':
+        return domain_msg.ChatRole.assistant;
+      case 'system':
+        return domain_msg.ChatRole.system;
+      default:
+        return domain_msg.ChatRole.user;
+    }
   }
 }
 
