@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/chat/chat_message.dart';
 import 'chat_message_bubble.dart';
+import '../../widgets/message_group.dart';
 
 class ChatMessagesList extends StatelessWidget {
   final List<ChatMessage> messages;
@@ -10,6 +11,7 @@ class ChatMessagesList extends StatelessWidget {
   final void Function(ChatMessage message)? onCopyMessage;
   final bool isBusy;
   final bool showTypingIndicator;
+  final bool enableGrouping;
 
   const ChatMessagesList({
     super.key, 
@@ -20,27 +22,71 @@ class ChatMessagesList extends StatelessWidget {
     this.onCopyMessage,
     this.isBusy = false,
     this.showTypingIndicator = false,
+    this.enableGrouping = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final allItems = <Widget>[];
     
-    // Add all messages
-    for (int i = 0; i < messages.length; i++) {
-      final ChatMessage message = messages[i];
-      final bool isLastAssistant = message.role == ChatRole.assistant && i == messages.length - 1;
+    if (enableGrouping) {
+      // Group consecutive messages from the same sender
+      final groups = MessageGroupingHelper.groupMessages(messages);
       
-      allItems.add(ChatMessageBubble(
-        message: message,
-        assistantLabel: assistantLabel,
-        showRegenerate: isLastAssistant && !isBusy,
-        onRegenerate: isLastAssistant && !isBusy ? onRegenerateLast : null,
-        onCopy: onCopyMessage,
-      ));
-      
-      if (i < messages.length - 1) {
-        allItems.add(const SizedBox(height: 4));
+      for (int groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+        final group = groups[groupIndex];
+        
+        if (group.length == 1) {
+          // Single message, render normally
+          final message = group.first;
+          final isLastAssistant = message.role == ChatRole.assistant && 
+              groupIndex == groups.length - 1 && 
+              messages.last == message;
+          
+          allItems.add(ChatMessageBubble(
+            message: message,
+            assistantLabel: assistantLabel,
+            showRegenerate: isLastAssistant && !isBusy,
+            onRegenerate: isLastAssistant && !isBusy ? onRegenerateLast : null,
+            onCopy: onCopyMessage,
+          ));
+        } else {
+          // Multiple messages from same sender, group them
+          allItems.add(MessageGroup(
+            messages: group,
+            role: group.first.role,
+            assistantLabel: assistantLabel,
+            onCopyMessage: onCopyMessage,
+            showRegenerate: group.last == messages.last && 
+                group.first.role == ChatRole.assistant && 
+                !isBusy,
+            onRegenerate: group.last == messages.last && 
+                group.first.role == ChatRole.assistant && 
+                !isBusy ? onRegenerateLast : null,
+          ));
+        }
+        
+        if (groupIndex < groups.length - 1) {
+          allItems.add(const SizedBox(height: 8));
+        }
+      }
+    } else {
+      // No grouping, render messages individually
+      for (int i = 0; i < messages.length; i++) {
+        final ChatMessage message = messages[i];
+        final bool isLastAssistant = message.role == ChatRole.assistant && i == messages.length - 1;
+        
+        allItems.add(ChatMessageBubble(
+          message: message,
+          assistantLabel: assistantLabel,
+          showRegenerate: isLastAssistant && !isBusy,
+          onRegenerate: isLastAssistant && !isBusy ? onRegenerateLast : null,
+          onCopy: onCopyMessage,
+        ));
+        
+        if (i < messages.length - 1) {
+          allItems.add(const SizedBox(height: 4));
+        }
       }
     }
     
