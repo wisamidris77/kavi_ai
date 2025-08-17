@@ -1,0 +1,380 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+  JAVA_VERSION: '17'
+
+jobs:
+  # Job 1: Build All Platforms
+  build-all:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Android builds
+          - os: ubuntu-latest
+            name: Android-AAB
+            build_command: flutter build appbundle --release
+            artifact_path: build/app/outputs/bundle/release/*.aab
+            artifact_name: android-aab
+          
+          - os: ubuntu-latest
+            name: Android-APK
+            build_command: |
+              flutter build apk --release --split-per-abi
+              flutter build apk --release  # Also build universal APK
+            artifact_path: build/app/outputs/flutter-apk/*.apk
+            artifact_name: android-apk
+          
+          # iOS build
+          - os: macos-latest
+            name: iOS
+            build_command: |
+              flutter build ios --release --no-codesign
+              cd ios
+              xcodebuild archive \
+                -workspace Runner.xcworkspace \
+                -scheme Runner \
+                -configuration Release \
+                -archivePath build/Runner.xcarchive \
+                CODE_SIGN_IDENTITY="" \
+                CODE_SIGNING_REQUIRED=NO \
+                CODE_SIGNING_ALLOWED=NO
+              xcodebuild -exportArchive \
+                -archivePath build/Runner.xcarchive \
+                -exportPath build/ipa \
+                -exportOptionsPlist ../scripts/ExportOptions.plist \
+                CODE_SIGN_IDENTITY="" \
+                CODE_SIGNING_REQUIRED=NO \
+                CODE_SIGNING_ALLOWED=NO || true
+            artifact_path: ios/build/Runner.xcarchive
+            artifact_name: ios-archive
+          
+          # macOS build
+          - os: macos-latest
+            name: macOS
+            build_command: |
+              flutter build macos --release
+              cd build/macos/Build/Products/Release
+              ditto -c -k --sequesterRsrc --keepParent "*.app" ../../../../../macos-app.zip
+            artifact_path: macos-app.zip
+            artifact_name: macos-app
+          
+          # Windows build
+          - os: windows-latest
+            name: Windows
+            build_command: |
+              flutter build windows --release
+              cd build/windows/x64/runner
+              7z a -tzip ../../../../windows-app.zip Release/
+            artifact_path: windows-app.zip
+            artifact_name: windows-app
+          
+          # Linux build
+          - os: ubuntu-latest
+            name: Linux
+            build_command: |
+              sudo apt-get update -y
+              sudo apt-get install -y ninja-build libgtk-3-dev
+              flutter build linux --release
+              cd build/linux/x64/release
+              tar -czf ../../../../linux-app.tar.gz bundle/
+            artifact_path: linux-app.tar.gz
+            artifact_name: linux-app
+          
+          # Web build
+          - os: ubuntu-latest
+            name: Web
+            build_command: |
+              flutter build web --release --web-renderer canvaskit --base-href /kavi/
+              cd build
+              tar -czf ../web-app.tar.gz web/
+            artifact_path: web-app.tar.gz
+            artifact_name: web-app
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for changelog
+      
+      - name: ☕ Setup Java (for Android)
+        if: contains(matrix.name, 'Android')
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 🔑 Setup signing (Android)
+        if: contains(matrix.name, 'Android')
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+        run: |
+          if [ ! -z "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            echo "$KEY_PROPERTIES" > android/key.properties
+          fi
+        continue-on-error: true
+      
+      - name: 🏗️ Build ${{ matrix.name }}
+        run: ${{ matrix.build_command }}
+      
+      - name: 📤 Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          retention-days: 30
+
+  # Job 2: Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-all]
+    permissions:
+      contents: write
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 🏷️ Get version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=${{ github.event.inputs.prerelease }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=$([[ "$GITHUB_REF" == *"-"* ]] && echo true || echo false)" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./release-artifacts
+      
+      - name: 📝 Generate changelog
+        id: changelog
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          echo "## 📋 Changelog" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "Initial release" >> CHANGELOG.md
+          else
+            # Generate changelog from commits
+            echo "### 🚀 Features" >> CHANGELOG.md
+            git log $PREV_TAG..HEAD --grep="feat:" --pretty=format:"- %s" >> CHANGELOG.md || true
+            echo "" >> CHANGELOG.md
+            
+            echo "### 🐛 Bug Fixes" >> CHANGELOG.md
+            git log $PREV_TAG..HEAD --grep="fix:" --pretty=format:"- %s" >> CHANGELOG.md || true
+            echo "" >> CHANGELOG.md
+            
+            echo "### 📦 Other Changes" >> CHANGELOG.md
+            git log $PREV_TAG..HEAD --pretty=format:"- %s" | grep -v -E "^- (feat|fix):" >> CHANGELOG.md || true
+          fi
+          
+          echo "" >> CHANGELOG.md
+          echo "## 📊 Statistics" >> CHANGELOG.md
+          echo "- Commits: $(git rev-list $PREV_TAG..HEAD --count 2>/dev/null || echo 'N/A')" >> CHANGELOG.md
+          echo "- Contributors: $(git log $PREV_TAG..HEAD --format='%an' | sort -u | wc -l 2>/dev/null || echo 'N/A')" >> CHANGELOG.md
+      
+      - name: 📦 Prepare release assets
+        run: |
+          cd release-artifacts
+          for dir in */; do
+            cd "$dir"
+            for file in *; do
+              if [ -f "$file" ]; then
+                mv "$file" "../../kavi-${{ steps.version.outputs.version }}-${dir%/}-${file}"
+              fi
+            done
+            cd ..
+          done
+          cd ..
+          ls -la kavi-*
+      
+      - name: 🚀 Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: CHANGELOG.md
+          files: kavi-*
+          draft: false
+          prerelease: ${{ steps.version.outputs.is_prerelease }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 3: Deploy to Stores (Examples)
+  deploy-stores:
+    name: Deploy to ${{ matrix.store }}
+    runs-on: ${{ matrix.os }}
+    needs: [create-release]
+    if: github.event_name == 'push' && !contains(github.ref, '-')  # Only for non-prerelease tags
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - store: Google Play
+            os: ubuntu-latest
+            artifact: android-aab
+          - store: App Store
+            os: macos-latest
+            artifact: ios-archive
+          - store: Microsoft Store
+            os: windows-latest
+            artifact: windows-app
+    
+    steps:
+      - name: 📥 Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+      
+      - name: 📱 Deploy to Google Play
+        if: matrix.store == 'Google Play' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.yourcompany.kavi
+          releaseFiles: '*.aab'
+          track: production
+          status: completed
+        continue-on-error: true
+      
+      - name: 🍎 Deploy to App Store
+        if: matrix.store == 'App Store' && secrets.APP_STORE_CONNECT_API_KEY != ''
+        run: |
+          echo "App Store deployment would go here"
+          # xcrun altool --upload-app -f *.ipa -t ios \
+          #   --apiKey ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }} \
+          #   --apiIssuer ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        continue-on-error: true
+      
+      - name: 🪟 Deploy to Microsoft Store
+        if: matrix.store == 'Microsoft Store'
+        run: |
+          echo "Microsoft Store deployment would go here"
+          # Use Windows Store CLI or API
+        continue-on-error: true
+
+  # Job 4: Deploy Web
+  deploy-web:
+    name: Deploy Web App
+    runs-on: ubuntu-latest
+    needs: [build-all]
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📥 Download web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-app
+      
+      - name: 📦 Extract web build
+        run: tar -xzf web-app.tar.gz
+      
+      - name: 🚀 Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web
+          cname: kavi.yourdomain.com  # Optional: custom domain
+        continue-on-error: true
+      
+      - name: ☁️ Deploy to Netlify
+        if: secrets.NETLIFY_AUTH_TOKEN != ''
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: './web'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        continue-on-error: true
+
+  # Job 5: Post-Release
+  post-release:
+    name: Post-Release Tasks
+    runs-on: ubuntu-latest
+    needs: [create-release]
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🏷️ Get version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: 📢 Announce on Discord
+        if: secrets.DISCORD_WEBHOOK != ''
+        run: |
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d "{\"content\":\"🎉 **Kavi ${{ steps.version.outputs.version }} Released!**\n\nCheck it out: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}\"}" \
+            ${{ secrets.DISCORD_WEBHOOK }}
+        continue-on-error: true
+      
+      - name: 💬 Announce on Slack
+        if: secrets.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: |
+            🎉 *Kavi ${{ steps.version.outputs.version }} Released!*
+            
+            📦 Available for: Android, iOS, Web, Windows, macOS, Linux
+            🔗 https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true

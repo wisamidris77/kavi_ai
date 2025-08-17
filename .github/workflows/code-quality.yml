@@ -1,0 +1,433 @@
+name: Code Quality & Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main, develop]
+  schedule:
+    # Run every day at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+
+jobs:
+  # Job 1: Static Analysis
+  static-analysis:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 📝 Analyze code
+        run: |
+          flutter analyze --write=analyze_report.txt
+          
+          # Also output to console
+          flutter analyze
+      
+      - name: 📊 Generate metrics
+        run: |
+          # Install metrics tool
+          flutter pub global activate dart_code_metrics
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          
+          # Generate metrics reports
+          metrics analyze lib \
+            --reporter=html \
+            --reporter=json \
+            --reporter=console \
+            --reporter=github \
+            --output-directory=metrics_report
+          
+          # Check metrics thresholds
+          metrics check-unused-code lib \
+            --reporter=console \
+            --reporter=json
+          
+          metrics check-unused-files lib \
+            --reporter=console \
+            --reporter=json
+      
+      - name: 📤 Upload analysis reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-reports
+          path: |
+            analyze_report.txt
+            metrics_report/
+      
+      - name: 💬 Comment PR with metrics
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const analysisReport = fs.readFileSync('analyze_report.txt', 'utf8');
+            
+            const comment = `## 📊 Code Analysis Report
+            
+            <details>
+            <summary>Flutter Analyze Results</summary>
+            
+            \`\`\`
+            ${analysisReport || 'No issues found! ✅'}
+            \`\`\`
+            </details>
+            
+            [View Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+        continue-on-error: true
+
+  # Job 2: Code Formatting
+  formatting:
+    name: Code Formatting Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📝 Check formatting
+        id: format
+        run: |
+          # Check if code is formatted
+          dart format --set-exit-if-changed --output none .
+          
+          # If formatting is needed, show diff
+          if [ $? -ne 0 ]; then
+            echo "formatting_needed=true" >> $GITHUB_OUTPUT
+            dart format . --output show
+          else
+            echo "formatting_needed=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 🔧 Auto-fix formatting (PR only)
+        if: github.event_name == 'pull_request' && steps.format.outputs.formatting_needed == 'true'
+        run: |
+          dart format .
+          
+          # Check if there are changes
+          if [[ -n $(git status -s) ]]; then
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add -A
+            git commit -m "style: auto-format code"
+          fi
+        continue-on-error: true
+      
+      - name: 🔀 Push formatting fixes
+        if: github.event_name == 'pull_request' && steps.format.outputs.formatting_needed == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}
+        continue-on-error: true
+
+  # Job 3: Documentation
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 📖 Generate documentation
+        run: |
+          # Generate dartdoc
+          dart doc . --output=doc/api
+          
+          # Check documentation coverage
+          flutter pub global activate dartdoc_coverage
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dartdoc_coverage --path lib --min-coverage 70 || true
+      
+      - name: 📊 Check README and docs
+        run: |
+          # Check if essential documentation exists
+          files=("README.md" "LICENSE" "CONTRIBUTING.md" "CHANGELOG.md")
+          missing=()
+          
+          for file in "${files[@]}"; do
+            if [ ! -f "$file" ]; then
+              missing+=("$file")
+            fi
+          done
+          
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "⚠️ Missing documentation files: ${missing[*]}"
+          fi
+      
+      - name: 📤 Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: doc/api/
+
+  # Job 4: Complexity Analysis
+  complexity:
+    name: Code Complexity Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 🧮 Calculate cyclomatic complexity
+        run: |
+          flutter pub global activate dart_code_metrics
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          
+          # Analyze complexity
+          metrics analyze lib \
+            --reporter=console \
+            --set-exit-on-violation-level=warning \
+            --cyclomatic-complexity=10 \
+            --maximum-nesting-level=5 \
+            --number-of-parameters=4 \
+            --source-lines-of-code=50 \
+            --maintainability-index=40 \
+            --technical-debt=0.5
+      
+      - name: 📊 Generate complexity report
+        run: |
+          echo "## 🧮 Complexity Report" > complexity.md
+          echo "" >> complexity.md
+          
+          flutter pub global activate dart_code_metrics
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          
+          metrics analyze lib --reporter=console >> complexity.md || true
+
+  # Job 5: Test Coverage Analysis
+  coverage-analysis:
+    name: Test Coverage Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 🧪 Run tests with coverage
+        run: flutter test --coverage --coverage-path=coverage/lcov.info
+      
+      - name: 📊 Generate coverage report
+        run: |
+          # Install lcov
+          sudo apt-get update
+          sudo apt-get install -y lcov
+          
+          # Generate HTML report
+          genhtml coverage/lcov.info -o coverage/html
+          
+          # Calculate coverage percentage
+          COVERAGE=$(lcov --summary coverage/lcov.info 2>&1 | grep lines | sed 's/.*: \([0-9.]*\)%.*/\1/')
+          echo "coverage=$COVERAGE" >> $GITHUB_ENV
+          
+          # Create badge
+          echo "![Coverage](https://img.shields.io/badge/coverage-${COVERAGE}%25-brightgreen)" > coverage_badge.md
+      
+      - name: 📈 Check coverage threshold
+        run: |
+          THRESHOLD=70
+          if (( $(echo "${{ env.coverage }} < $THRESHOLD" | bc -l) )); then
+            echo "⚠️ Coverage ${env.coverage}% is below threshold of $THRESHOLD%"
+            exit 1
+          else
+            echo "✅ Coverage ${env.coverage}% meets threshold of $THRESHOLD%"
+          fi
+      
+      - name: 📤 Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/html/
+      
+      - name: 💬 Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverage = '${{ env.coverage }}';
+            const threshold = 70;
+            const emoji = parseFloat(coverage) >= threshold ? '✅' : '⚠️';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📊 Test Coverage Report
+              
+              ${emoji} Coverage: **${coverage}%** (Threshold: ${threshold}%)
+              
+              [View Detailed Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
+            });
+        continue-on-error: true
+
+  # Job 6: Performance Analysis
+  performance:
+    name: Performance Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: ⚡ Run performance tests
+        run: |
+          # Run tests with performance tracking
+          flutter test --coverage test/ --dart-define=PERFORMANCE_TEST=true || true
+          
+          # Analyze widget rebuild performance
+          flutter test test/widget_test.dart --profile || true
+      
+      - name: 📊 Build size analysis
+        run: |
+          # Build and analyze size
+          flutter build apk --release --analyze-size > size_analysis.txt
+          
+          # Extract size information
+          echo "## 📦 Build Size Analysis" > size_report.md
+          echo "" >> size_report.md
+          cat size_analysis.txt >> size_report.md
+      
+      - name: 📤 Upload performance reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-reports
+          path: |
+            size_analysis.txt
+            size_report.md
+
+  # Job 7: Summary Report
+  summary:
+    name: Quality Summary
+    runs-on: ubuntu-latest
+    needs: [static-analysis, formatting, documentation, complexity, coverage-analysis, performance]
+    if: always()
+    
+    steps:
+      - name: 📊 Generate summary
+        run: |
+          echo "# 📊 Code Quality Summary" > summary.md
+          echo "" >> summary.md
+          echo "## Results" >> summary.md
+          echo "- Static Analysis: ${{ needs.static-analysis.result }}" >> summary.md
+          echo "- Formatting: ${{ needs.formatting.result }}" >> summary.md
+          echo "- Documentation: ${{ needs.documentation.result }}" >> summary.md
+          echo "- Complexity: ${{ needs.complexity.result }}" >> summary.md
+          echo "- Coverage: ${{ needs.coverage-analysis.result }}" >> summary.md
+          echo "- Performance: ${{ needs.performance.result }}" >> summary.md
+          echo "" >> summary.md
+          echo "## Metrics" >> summary.md
+          echo "- Run ID: ${{ github.run_id }}" >> summary.md
+          echo "- Branch: ${{ github.ref_name }}" >> summary.md
+          echo "- Commit: ${{ github.sha }}" >> summary.md
+          echo "- Triggered by: ${{ github.actor }}" >> summary.md
+      
+      - name: 📤 Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-summary
+          path: summary.md
+      
+      - name: 💬 Send notification
+        if: vars.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "Code Quality Check Completed",
+              attachments: [{
+                color: "${{ contains(needs.*.result, 'failure') && 'danger' || 'good' }}",
+                title: "Quality Check Results",
+                fields: [
+                  { title: "Static Analysis", value: "${{ needs.static-analysis.result }}", short: true },
+                  { title: "Formatting", value: "${{ needs.formatting.result }}", short: true },
+                  { title: "Documentation", value: "${{ needs.documentation.result }}", short: true },
+                  { title: "Complexity", value: "${{ needs.complexity.result }}", short: true },
+                  { title: "Coverage", value: "${{ needs.coverage-analysis.result }}", short: true },
+                  { title: "Performance", value: "${{ needs.performance.result }}", short: true }
+                ]
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true

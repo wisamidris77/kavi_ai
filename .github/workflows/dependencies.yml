@@ -1,0 +1,321 @@
+name: Dependency Management
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      update_type:
+        description: 'Type of update'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - flutter
+          - pub
+          - security
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+
+jobs:
+  # Job 1: Check for Flutter SDK updates
+  flutter-update:
+    name: Check Flutter SDK Updates
+    runs-on: ubuntu-latest
+    if: github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'flutter'
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Get current Flutter version
+        id: current
+        run: |
+          echo "version=${{ env.FLUTTER_VERSION }}" >> $GITHUB_OUTPUT
+      
+      - name: 🔍 Check latest Flutter version
+        id: latest
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/flutter/flutter/releases/latest | jq -r .tag_name)
+          echo "version=$LATEST" >> $GITHUB_OUTPUT
+          echo "Latest Flutter version: $LATEST"
+      
+      - name: 📝 Create issue if update available
+        if: steps.current.outputs.version != steps.latest.outputs.version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Flutter SDK Update Available: ${steps.latest.outputs.version}`,
+              body: `A new Flutter SDK version is available!\n\nCurrent: ${{ steps.current.outputs.version }}\nLatest: ${{ steps.latest.outputs.version }}\n\n[Release Notes](https://github.com/flutter/flutter/releases/tag/${{ steps.latest.outputs.version }})\n\n### Update Checklist\n- [ ] Review breaking changes\n- [ ] Update CI/CD workflows\n- [ ] Test on all platforms\n- [ ] Update documentation`,
+              labels: ['dependencies', 'flutter-sdk']
+            });
+
+  # Job 2: Update Pub Dependencies
+  pub-update:
+    name: Update Pub Dependencies
+    runs-on: ubuntu-latest
+    if: github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'pub'
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Check outdated packages
+        id: outdated
+        run: |
+          flutter pub outdated --json > outdated.json || true
+          cat outdated.json
+      
+      - name: 🔄 Update dependencies
+        run: |
+          # Update to latest compatible versions
+          flutter pub upgrade --major-versions
+          
+          # Update lock file
+          flutter pub get
+      
+      - name: 🧪 Run tests
+        run: flutter test
+        continue-on-error: true
+      
+      - name: 📝 Generate update report
+        id: report
+        run: |
+          echo "## 📦 Dependency Update Report" > report.md
+          echo "" >> report.md
+          echo "### Updated Packages" >> report.md
+          flutter pub deps --json | jq -r '.packages[] | select(.kind=="direct") | "- \(.name): \(.version)"' >> report.md || true
+          echo "" >> report.md
+          echo "### Outdated Packages (if any)" >> report.md
+          flutter pub outdated >> report.md || true
+      
+      - name: 🔀 Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(deps): update pub dependencies'
+          title: '⬆️ Update Pub Dependencies'
+          body-path: report.md
+          branch: deps/pub-update-${{ github.run_number }}
+          delete-branch: true
+          labels: |
+            dependencies
+            automated
+          assignees: ${{ github.actor }}
+
+  # Job 3: Security Audit
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    if: github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'security'
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 🔒 Run security audit
+        id: audit
+        run: |
+          # Install audit tool
+          flutter pub global activate dart_dependency_audit
+          
+          # Run audit
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dart_dependency_audit audit --format json > audit.json || true
+          
+          # Check for vulnerabilities
+          if [ -s audit.json ]; then
+            VULNS=$(cat audit.json | jq '.vulnerabilities | length')
+            echo "vulnerabilities=$VULNS" >> $GITHUB_OUTPUT
+            
+            if [ "$VULNS" -gt 0 ]; then
+              echo "⚠️ Found $VULNS vulnerabilities"
+              cat audit.json | jq '.vulnerabilities'
+            fi
+          fi
+      
+      - name: 📊 OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'kavi'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --enableRetired
+            --enableExperimental
+        continue-on-error: true
+      
+      - name: 📤 Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            audit.json
+            reports/
+      
+      - name: 🚨 Create security issue if vulnerabilities found
+        if: steps.audit.outputs.vulnerabilities > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔒 Security: ${steps.audit.outputs.vulnerabilities} vulnerabilities found`,
+              body: `Security audit found **${{ steps.audit.outputs.vulnerabilities }}** vulnerabilities in dependencies.\n\nPlease review the security reports and update affected packages.\n\n[View Security Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n### Priority Actions\n- [ ] Review vulnerability details\n- [ ] Update affected packages\n- [ ] Test changes\n- [ ] Deploy patches`,
+              labels: ['security', 'dependencies', 'high-priority']
+            });
+
+  # Job 4: License Check
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 📜 Check licenses
+        run: |
+          # Generate license report
+          flutter pub deps --json > deps.json
+          
+          echo "## 📜 License Report" > licenses.md
+          echo "" >> licenses.md
+          echo "### Direct Dependencies" >> licenses.md
+          
+          # Extract and check licenses
+          cat deps.json | jq -r '.packages[] | select(.kind=="direct") | "- \(.name): \(.version)"' >> licenses.md
+          
+          # Check for problematic licenses
+          PROBLEMATIC=$(cat pubspec.lock | grep -E "GPL|AGPL|LGPL" || true)
+          if [ ! -z "$PROBLEMATIC" ]; then
+            echo "⚠️ Found potentially problematic licenses:"
+            echo "$PROBLEMATIC"
+          fi
+      
+      - name: 📤 Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: licenses.md
+
+  # Job 5: Dependency Graph
+  dependency-graph:
+    name: Update Dependency Graph
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 📊 Generate dependency graph
+        run: |
+          # Install graphviz
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+          
+          # Generate dependency tree
+          flutter pub deps --style=tree > deps-tree.txt
+          
+          # Generate visual graph (if tool available)
+          flutter pub global activate pubviz || true
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          pubviz -o deps-graph.png || true
+      
+      - name: 📤 Upload dependency graphs
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-graphs
+          path: |
+            deps-tree.txt
+            deps-graph.png
+
+  # Job 6: Notify Results
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [flutter-update, pub-update, security-audit, license-check]
+    if: always()
+    
+    steps:
+      - name: 📊 Summarize results
+        run: |
+          echo "## 📊 Dependency Management Summary" > summary.md
+          echo "" >> summary.md
+          echo "- Flutter Update Check: ${{ needs.flutter-update.result }}" >> summary.md
+          echo "- Pub Dependencies Update: ${{ needs.pub-update.result }}" >> summary.md
+          echo "- Security Audit: ${{ needs.security-audit.result }}" >> summary.md
+          echo "- License Check: ${{ needs.license-check.result }}" >> summary.md
+          echo "" >> summary.md
+          echo "Run ID: ${{ github.run_id }}" >> summary.md
+          echo "Triggered by: ${{ github.actor }}" >> summary.md
+      
+      - name: 💬 Send notification
+        if: vars.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "Dependency Management Completed",
+              attachments: [{
+                color: "${{ contains(needs.*.result, 'failure') && 'danger' || 'good' }}",
+                title: "Dependency Check Results",
+                fields: [
+                  { title: "Flutter Update", value: "${{ needs.flutter-update.result }}", short: true },
+                  { title: "Pub Update", value: "${{ needs.pub-update.result }}", short: true },
+                  { title: "Security Audit", value: "${{ needs.security-audit.result }}", short: true },
+                  { title: "License Check", value: "${{ needs.license-check.result }}", short: true }
+                ]
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true

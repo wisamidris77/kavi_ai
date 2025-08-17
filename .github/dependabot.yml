@@ -1,0 +1,67 @@
+# Dependabot configuration for automated dependency updates
+version: 2
+
+updates:
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    assignees:
+      - "YOUR_GITHUB_USERNAME"  # Replace with your username
+    reviewers:
+      - "YOUR_GITHUB_USERNAME"  # Replace with your username
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    open-pull-requests-limit: 5
+
+  # Pub dependencies (Flutter/Dart)
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "dart"
+      - "flutter"
+    assignees:
+      - "YOUR_GITHUB_USERNAME"  # Replace with your username
+    reviewers:
+      - "YOUR_GITHUB_USERNAME"  # Replace with your username
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    open-pull-requests-limit: 10
+    versioning-strategy: "increase"
+    groups:
+      # Group Flutter/Dart core packages
+      flutter:
+        patterns:
+          - "flutter*"
+          - "cupertino*"
+      # Group testing packages
+      testing:
+        patterns:
+          - "*test*"
+          - "mock*"
+          - "faker"
+      # Group build/dev packages
+      build:
+        patterns:
+          - "build_*"
+          - "json_*"
+          - "freezed*"
+    ignore:
+      # Add packages to ignore here if needed
+      # - dependency-name: "package_name"
+      #   versions: ["1.x", "2.x"]

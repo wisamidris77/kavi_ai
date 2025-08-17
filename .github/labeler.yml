@@ -1,0 +1,66 @@
+# Configuration for PR labeler action
+# Automatically adds labels based on file changes
+
+# Documentation changes
+documentation:
+  - '**/*.md'
+  - 'docs/**'
+  - '.github/**.md'
+
+# Test changes
+test:
+  - 'test/**'
+  - '**/*_test.dart'
+
+# CI/CD changes
+ci/cd:
+  - '.github/workflows/**'
+  - '.github/actions/**'
+
+# Dependencies
+dependencies:
+  - 'pubspec.yaml'
+  - 'pubspec.lock'
+
+# UI/Frontend changes
+ui:
+  - 'lib/presentation/**'
+  - 'lib/widgets/**'
+  - 'lib/screens/**'
+
+# Backend/Domain changes
+backend:
+  - 'lib/domain/**'
+  - 'lib/providers/**'
+  - 'lib/services/**'
+
+# Platform specific
+android:
+  - 'android/**'
+
+ios:
+  - 'ios/**'
+
+web:
+  - 'web/**'
+
+windows:
+  - 'windows/**'
+
+macos:
+  - 'macos/**'
+
+linux:
+  - 'linux/**'
+
+# Core changes
+core:
+  - 'lib/core/**'
+  - 'lib/main.dart'
+
+# Configuration
+config:
+  - '*.yaml'
+  - '*.yml'
+  - '*.json'
+  - '.env*'

@@ -1,0 +1,387 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'feature/**', 'release/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  FLUTTER_VERSION: '3.24.0'  # Update to match your Flutter version
+  JAVA_VERSION: '17'
+  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}  # Optional: for codecov.io
+
+jobs:
+  # Job 1: Code Quality Checks
+  code-quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: |
+          flutter pub get
+          flutter pub global activate dart_code_metrics
+      
+      - name: 🔍 Analyze code
+        run: flutter analyze --no-fatal-infos
+      
+      - name: 📝 Check formatting
+        run: dart format --set-exit-if-changed .
+      
+      - name: 📊 Run code metrics
+        run: |
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          metrics analyze lib --reporter=github --fatal-style --fatal-performance --fatal-warnings
+        continue-on-error: true  # Don't fail build on metrics
+      
+      - name: 🔒 Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+        continue-on-error: true
+
+  # Job 2: Run Tests
+  test:
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-latest
+            platform: macos
+          - os: windows-latest
+            platform: windows
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 🏗️ Generate code
+        run: |
+          flutter pub run build_runner build --delete-conflicting-outputs
+        continue-on-error: true  # Continue if no generated files
+      
+      - name: 🧪 Run tests with coverage
+        run: |
+          flutter test --coverage --test-randomize-ordering-seed random
+      
+      - name: 📊 Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && github.event_name == 'push'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+      
+      - name: 📈 Generate coverage report
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov
+          genhtml coverage/lcov.info -o coverage/html
+      
+      - name: 📤 Upload coverage artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/html/
+      
+      - name: 💬 Comment PR with coverage
+        if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest'
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        with:
+          lcov-file: ./coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          delete-old-comments: true
+
+  # Job 3: Build Applications
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    needs: [code-quality, test]
+    timeout-minutes: 30
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: Android
+            build_command: flutter build apk --release --split-per-abi
+            artifact_path: build/app/outputs/flutter-apk/*.apk
+            artifact_name: android-apk
+          
+          - os: ubuntu-latest
+            target: Web
+            build_command: flutter build web --release --web-renderer canvaskit
+            artifact_path: build/web
+            artifact_name: web-app
+          
+          - os: macos-latest
+            target: iOS
+            build_command: |
+              flutter build ios --release --no-codesign
+              cd ios && xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Release -sdk iphonesimulator -derivedDataPath build
+            artifact_path: ios/build/Build/Products/Release-iphonesimulator/Runner.app
+            artifact_name: ios-app
+          
+          - os: macos-latest
+            target: macOS
+            build_command: flutter build macos --release
+            artifact_path: build/macos/Build/Products/Release/*.app
+            artifact_name: macos-app
+          
+          - os: windows-latest
+            target: Windows
+            build_command: flutter build windows --release
+            artifact_path: build/windows/x64/runner/Release
+            artifact_name: windows-app
+          
+          - os: ubuntu-latest
+            target: Linux
+            build_command: |
+              sudo apt-get update -y
+              sudo apt-get install -y ninja-build libgtk-3-dev
+              flutter build linux --release
+            artifact_path: build/linux/x64/release/bundle
+            artifact_name: linux-app
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: ☕ Setup Java (for Android)
+        if: matrix.target == 'Android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 🏗️ Build ${{ matrix.target }}
+        run: ${{ matrix.build_command }}
+      
+      - name: 📤 Upload ${{ matrix.target }} artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          retention-days: 7
+
+  # Job 4: Integration Tests (Optional)
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [test]
+    timeout-minutes: 30
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🎯 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+      
+      - name: 📦 Get dependencies
+        run: flutter pub get
+      
+      - name: 🧪 Run integration tests
+        run: |
+          if [ -d "integration_test" ]; then
+            flutter test integration_test
+          else
+            echo "No integration tests found"
+          fi
+
+  # Job 5: Security Scan
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [code-quality]
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🔒 Run Trivy security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: 📤 Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+
+  # Job 6: Deploy (Example for Web)
+  deploy-web:
+    name: Deploy Web to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📥 Download web artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: web-app
+          path: ./web-build
+      
+      - name: 📄 Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: 📤 Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./web-build
+      
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Job 7: Create Release
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+      
+      - name: 📦 Zip artifacts
+        run: |
+          cd artifacts
+          for dir in */; do
+            zip -r "${dir%/}.zip" "$dir"
+          done
+      
+      - name: 📝 Generate changelog
+        id: changelog
+        run: |
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: 🚀 Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/*.zip
+          body: |
+            ## Changes in this Release
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            
+            ## Artifacts
+            - 📱 Android APK
+            - 🌐 Web Build
+            - 🖥️ Desktop Builds (Windows, macOS, Linux)
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 8: Notification
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [code-quality, test, build]
+    if: always()
+    
+    steps:
+      - name: 📊 Check job statuses
+        id: check
+        run: |
+          if [[ "${{ needs.code-quality.result }}" == "failure" ]] || \
+             [[ "${{ needs.test.result }}" == "failure" ]] || \
+             [[ "${{ needs.build.result }}" == "failure" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 💬 Slack Notification
+        if: vars.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ steps.check.outputs.status }}
+          text: |
+            Pipeline ${{ steps.check.outputs.status == 'success' && '✅ Passed' || '❌ Failed' }}
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
