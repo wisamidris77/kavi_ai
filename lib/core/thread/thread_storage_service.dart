@@ -101,6 +101,7 @@ class ThreadRecord {
   final DateTime parentTimestamp;
   final List<ThreadReply> replies;
   final DateTime createdAt;
+  final String role;
 
   ThreadRecord({
     required this.parentMessageId,
@@ -108,6 +109,7 @@ class ThreadRecord {
     required this.parentContent,
     required this.parentTimestamp,
     this.replies = const [],
+    required this.role,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -124,6 +126,7 @@ class ThreadRecord {
 
   factory ThreadRecord.fromJson(Map<String, dynamic> json) {
     return ThreadRecord(
+      role: json['role'] as String,
       parentMessageId: json['parentMessageId'] as String,
       chatId: json['chatId'] as String,
       parentContent: json['parentContent'] as String,
@@ -142,6 +145,7 @@ class ThreadRecord {
     DateTime? parentTimestamp,
     List<ThreadReply>? replies,
     DateTime? createdAt,
+    String? role,
   }) {
     return ThreadRecord(
       parentMessageId: parentMessageId ?? this.parentMessageId,
@@ -150,6 +154,7 @@ class ThreadRecord {
       parentTimestamp: parentTimestamp ?? this.parentTimestamp,
       replies: replies ?? this.replies,
       createdAt: createdAt ?? this.createdAt,
+      role: role ?? this.role,
     );
   }
 }

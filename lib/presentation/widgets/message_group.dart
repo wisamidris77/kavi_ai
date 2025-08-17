@@ -3,8 +3,8 @@ import '../../domain/models/chat_message_model.dart' as domain_msg;
 import '../../domain/models/chat_role.dart' as domain_role;
 
 class MessageGroup extends StatelessWidget {
-  final List<domain_msg.ChatMessage> messages;
-  final Widget Function(domain_msg.ChatMessage) messageBuilder;
+  final List<domain_msg.ChatMessageModel> messages;
+  final Widget Function(domain_msg.ChatMessageModel) messageBuilder;
   final bool showSenderInfo;
   final bool showTimestamps;
   final Duration groupingThreshold;
@@ -87,7 +87,7 @@ class MessageGroup extends StatelessWidget {
     );
   }
 
-  String _getSenderName(domain_msg.ChatMessage message) {
+  String _getSenderName(domain_msg.ChatMessageModel message) {
     switch (message.role) {
       case domain_role.ChatRole.user:
         return 'You';
@@ -102,7 +102,7 @@ class MessageGroup extends StatelessWidget {
 }
 
 class _MessageBubble extends StatelessWidget {
-  final domain_msg.ChatMessage message;
+  final domain_msg.ChatMessageModel message;
   final bool isFirst;
   final bool isLast;
   final bool isUser;
@@ -192,7 +192,7 @@ class _MessageBubble extends StatelessWidget {
 }
 
 class _GroupTimestamp extends StatelessWidget {
-  final List<domain_msg.ChatMessage> messages;
+  final List<domain_msg.ChatMessageModel> messages;
   final Duration groupingThreshold;
 
   const _GroupTimestamp({
@@ -208,7 +208,7 @@ class _GroupTimestamp extends StatelessWidget {
     final firstMessage = messages.first;
     final lastMessage = messages.last;
     
-    final timeRange = _getTimeRange(firstMessage.timestamp, lastMessage.timestamp);
+    final timeRange = _getTimeRange(firstMessage.createdAt!, lastMessage.createdAt!);
 
     return Text(
       timeRange,
@@ -253,14 +253,14 @@ class _GroupTimestamp extends StatelessWidget {
 }
 
 class MessageGroupingHelper {
-  static List<List<domain_msg.ChatMessage>> groupMessages(
-    List<domain_msg.ChatMessage> messages, {
+  static List<List<domain_msg.ChatMessageModel>> groupMessages(
+    List<domain_msg.ChatMessageModel> messages, {
     Duration threshold = const Duration(minutes: 5),
   }) {
     if (messages.isEmpty) return [];
 
-    final groups = <List<domain_msg.ChatMessage>>[];
-    List<domain_msg.ChatMessage> currentGroup = [messages.first];
+    final groups = <List<domain_msg.ChatMessageModel>>[];
+    List<domain_msg.ChatMessageModel> currentGroup = [messages.first];
 
     for (int i = 1; i < messages.length; i++) {
       final currentMessage = messages[i];
@@ -287,15 +287,15 @@ class MessageGroupingHelper {
   }
 
   static bool _shouldGroupMessages(
-    domain_msg.ChatMessage message1,
-    domain_msg.ChatMessage message2,
+    domain_msg.ChatMessageModel message1,
+    domain_msg.ChatMessageModel message2,
     Duration threshold,
   ) {
     // Same sender
     if (message1.role != message2.role) return false;
 
     // Within time threshold
-    final timeDifference = message2.timestamp.difference(message1.timestamp);
+    final timeDifference = message2.createdAt!.difference(message1.createdAt!);
     if (timeDifference > threshold) return false;
 
     // Not system messages (they should be separate)
@@ -304,14 +304,14 @@ class MessageGroupingHelper {
     return true;
   }
 
-  static List<domain_msg.ChatMessage> flattenGroups(
-    List<List<domain_msg.ChatMessage>> groups,
+  static List<domain_msg.ChatMessageModel> flattenGroups(
+    List<List<domain_msg.ChatMessageModel>> groups,
   ) {
     return groups.expand((group) => group).toList();
   }
 
   static int getGroupIndex(
-    List<List<domain_msg.ChatMessage>> groups,
+    List<List<domain_msg.ChatMessageModel>> groups,
     int messageIndex,
   ) {
     int currentIndex = 0;
@@ -329,7 +329,7 @@ class MessageGroupingHelper {
   }
 
   static int getMessageIndexInGroup(
-    List<List<domain_msg.ChatMessage>> groups,
+    List<List<domain_msg.ChatMessageModel>> groups,
     int messageIndex,
   ) {
     int currentIndex = 0;

@@ -23,7 +23,7 @@ class FileHandlerService {
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: allowMultiple,
         allowedExtensions: allowedExtensions ?? _supportedExtensions,
-        type: FileType.custom,
+        // type: FileType.image,
       );
 
       if (result != null && result.files.isNotEmpty) {

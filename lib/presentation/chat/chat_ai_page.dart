@@ -20,25 +20,21 @@ import 'widgets/chat_messages_list.dart';
 import 'widgets/chat_sidebar.dart';
 import '../widgets/command_palette.dart';
 import '../chat/controller/chat_history_controller.dart';
+import '../chat/repository/chat_history_repository.dart';
+import '../../domain/models/chat_message_model.dart' as domain_msg;
+import '../../domain/models/chat_role.dart' as domain_role;
+import '../../core/file/file_handler_service.dart';
 
 class _OpenCommandPaletteIntent extends Intent {
   const _OpenCommandPaletteIntent();
 }
-import '../chat/repository/chat_history_repository.dart';
-import '../../domain/models/chat_message_model.dart' as domain_msg;
-import '../../domain/models/chat_role.dart' as domain_role;
 
 class ChatAiPage extends StatefulWidget {
   final AiChatService? service;
   final SettingsController settings;
   final McpController mcpController;
 
-  const ChatAiPage({
-    super.key, 
-    this.service, 
-    required this.settings,
-    required this.mcpController,
-  });
+  const ChatAiPage({super.key, this.service, required this.settings, required this.mcpController});
 
   @override
   State<ChatAiPage> createState() => _ChatAiPageState();
@@ -61,10 +57,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
   void initState() {
     super.initState();
     _chatService = widget.service ?? MockAiChatService();
-    _history = ChatHistoryController(
-      repository: ChatHistoryRepository(),
-      defaultProvider: widget.settings.settings.activeProvider,
-    );
+    _history = ChatHistoryController(repository: ChatHistoryRepository(), defaultProvider: widget.settings.settings.activeProvider);
     _historyListener = () {
       setState(() {});
     };
@@ -103,7 +96,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     final ProviderSettings ps = s.providers[type] ?? const ProviderSettings(enabled: false, apiKey: '');
 
     print('Applying provider: $type, enabled: ${ps.enabled}, hasKey: ${ps.apiKey.isNotEmpty}');
-    
+
     _history.setDefaultProvider(type);
 
     if (type == AiProviderType.mock) {
@@ -121,11 +114,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
       return;
     }
 
-    final AiProviderConfig config = AiProviderConfig(
-      apiKey: ps.apiKey,
-      baseUrl: ps.baseUrl,
-      defaultModel: ps.defaultModel,
-    );
+    final AiProviderConfig config = AiProviderConfig(apiKey: ps.apiKey, baseUrl: ps.baseUrl, defaultModel: ps.defaultModel);
 
     // Check if MCP is enabled and connected
     if (widget.mcpController.isEnabled && widget.mcpController.isConnected) {
@@ -168,7 +157,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
         _activeMessageId = null;
       }
     }
-    
+
     await _history.createNewChat();
     setState(() {
       _messages.clear();
@@ -203,58 +192,53 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _activeMessageId = null;
     _subscription = _chatService
         .sendMessage(history: List<ChatMessage>.from(_messages), prompt: text)
-        .listen((ChatMessage assistantUpdate) async {
-      _activeMessageId = assistantUpdate.id;
-      final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
-      setState(() {
-        if (existingIndex >= 0) {
-          _messages[existingIndex] = assistantUpdate;
-        } else {
-          _messages.add(assistantUpdate);
-        }
-      });
-      await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
-      _scrollToBottomDeferred();
-    }, onDone: () {
-      setState(() {
-        _isBusy = false;
-        _activeMessageId = null;
-      });
-    }, onError: (_) {
-      setState(() {
-        _isBusy = false;
-        _activeMessageId = null;
-      });
-    });
+        .listen(
+          (ChatMessage assistantUpdate) async {
+            _activeMessageId = assistantUpdate.id;
+            final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
+            setState(() {
+              if (existingIndex >= 0) {
+                _messages[existingIndex] = assistantUpdate;
+              } else {
+                _messages.add(assistantUpdate);
+              }
+            });
+            await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
+            _scrollToBottomDeferred();
+          },
+          onDone: () {
+            setState(() {
+              _isBusy = false;
+              _activeMessageId = null;
+            });
+          },
+          onError: (_) {
+            setState(() {
+              _isBusy = false;
+              _activeMessageId = null;
+            });
+          },
+        );
   }
 
   void _onFilesSelected(List<File> files) async {
     try {
       final fileInfos = <FileInfo>[];
-      
+
       for (final file in files) {
         final fileInfo = _fileHandler.getFileInfo(file);
         fileInfos.add(fileInfo);
       }
-      
+
       setState(() {
         _attachedFiles.addAll(fileInfos);
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${files.length} file(s) attached'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${files.length} file(s) attached'), duration: const Duration(seconds: 2)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error attaching files: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error attaching files: $e'), backgroundColor: Colors.red, duration: const Duration(seconds: 3)));
     }
   }
 
@@ -355,29 +339,33 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _activeMessageId = null;
     _subscription = _chatService
         .sendMessage(history: List<ChatMessage>.from(_messages), prompt: lastUserContent)
-        .listen((ChatMessage assistantUpdate) async {
-      _activeMessageId = assistantUpdate.id;
-      final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
-      setState(() {
-        if (existingIndex >= 0) {
-          _messages[existingIndex] = assistantUpdate;
-        } else {
-          _messages.add(assistantUpdate);
-        }
-      });
-      await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
-      _scrollToBottomDeferred();
-    }, onDone: () {
-      setState(() {
-        _isBusy = false;
-        _activeMessageId = null;
-      });
-    }, onError: (_) {
-      setState(() {
-        _isBusy = false;
-        _activeMessageId = null;
-      });
-    });
+        .listen(
+          (ChatMessage assistantUpdate) async {
+            _activeMessageId = assistantUpdate.id;
+            final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
+            setState(() {
+              if (existingIndex >= 0) {
+                _messages[existingIndex] = assistantUpdate;
+              } else {
+                _messages.add(assistantUpdate);
+              }
+            });
+            await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
+            _scrollToBottomDeferred();
+          },
+          onDone: () {
+            setState(() {
+              _isBusy = false;
+              _activeMessageId = null;
+            });
+          },
+          onError: (_) {
+            setState(() {
+              _isBusy = false;
+              _activeMessageId = null;
+            });
+          },
+        );
   }
 
   void _scrollToBottomDeferred() {
@@ -407,12 +395,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
         role = ChatRole.assistant;
         break;
     }
-    return ChatMessage(
-      id: m.id,
-      role: role,
-      content: m.content,
-      createdAt: m.createdAt ?? DateTime.now(),
-    );
+    return ChatMessage(id: m.id, role: role, content: m.content, createdAt: m.createdAt ?? DateTime.now());
   }
 
   String _providerLabel(AiProviderType t) {
@@ -423,6 +406,14 @@ class _ChatAiPageState extends State<ChatAiPage> {
         return 'DeepSeek';
       case AiProviderType.ollama:
         return 'Ollama';
+      case AiProviderType.anthropic:
+        return 'Anthropic';
+      case AiProviderType.gemini:
+        return 'Gemini';
+      case AiProviderType.mistral:
+        return 'Mistral';
+      case AiProviderType.cohere:
+        return 'Cohere';
       case AiProviderType.mock:
         return 'Mock';
     }
@@ -444,113 +435,101 @@ class _ChatAiPageState extends State<ChatAiPage> {
     final ColorScheme colors = Theme.of(context).colorScheme;
 
     return Shortcuts(
-      shortcuts: {
-        const SingleActivator(LogicalKeyboardKey.keyK, control: true): const _OpenCommandPaletteIntent(),
-      },
+      shortcuts: {const SingleActivator(LogicalKeyboardKey.keyK, control: true): const _OpenCommandPaletteIntent()},
       child: Actions(
-        actions: {
-          _OpenCommandPaletteIntent: CallbackAction<_OpenCommandPaletteIntent>(
-            onInvoke: (_) => _showCommandPalette(),
-          ),
-        },
+        actions: {_OpenCommandPaletteIntent: CallbackAction<_OpenCommandPaletteIntent>(onInvoke: (_) => _showCommandPalette())},
         child: Focus(
           autofocus: true,
           child: Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: !isWide,
-        titleSpacing: isWide ? 20 : 0,
-        title: Align(
-          alignment: Alignment.centerLeft,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTapDown: (details) => _openModelMenu(details.globalPosition),
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('KAVI', style: TextStyle(fontWeight: FontWeight.bold)),
-                        if (assistantLabel.isNotEmpty)
-                          Text(
-                            assistantLabel,
-                            style: Theme.of(context).textTheme.labelSmall,
+            appBar: AppBar(
+              automaticallyImplyLeading: !isWide,
+              titleSpacing: isWide ? 20 : 0,
+              title: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTapDown: (details) => _openModelMenu(details.globalPosition),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('KAVI', style: TextStyle(fontWeight: FontWeight.bold)),
+                              if (assistantLabel.isNotEmpty) Text(assistantLabel, style: Theme.of(context).textTheme.labelSmall),
+                            ],
                           ),
-                      ],
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.expand_more, size: 18),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-      drawer: isWide
-          ? null
-          : Drawer(
-              child: SafeArea(
-                child: ChatSidebar(
-                  onNewChat: _newChat,
-                  onOpenSettings: _openSettings,
-                  chats: _history.chats,
-                  activeChatId: _history.activeChatId,
-                  onSelectChat: _selectChat,
-                ),
-              ),
-            ),
-      body: Row(
-        children: <Widget>[
-          const SizedBox(width: 8),
-          if (isWide)
-            ChatSidebar(
-              onNewChat: _newChat,
-              onOpenSettings: _openSettings,
-              chats: _history.chats,
-              activeChatId: _history.activeChatId,
-              onSelectChat: _selectChat,
-            ),
-          if (isWide)
-            VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
-          Expanded(
-            child: Column(
-              children: <Widget>[
-                Expanded(
-                  child: _messages.isEmpty
-                      ? const _EmptyState()
-                      : ChatMessagesList(
-                        messages: _messages, 
-                        controller: _scrollController, 
-                        assistantLabel: assistantLabel, 
-                        onRegenerateLast: _regenerateLast, 
-                        onCopyMessage: (_) {},
-                        isBusy: _isBusy,
-                        showTypingIndicator: true,
+                          const SizedBox(width: 6),
+                          const Icon(Icons.expand_more, size: 18),
+                        ],
                       ),
+                    ),
+                  ),
                 ),
-                const Divider(height: 1),
-                EnhancedChatInput(
-                  isBusy: _isBusy,
-                  onSend: _send,
-                  onStop: _stop,
-                  onFilesSelected: _onFilesSelected,
-                  onClearFiles: _onClearFiles,
-                  attachedFiles: _attachedFiles,
-                  onRemoveFile: _removeFile,
+              ),
+            ),
+            drawer: isWide
+                ? null
+                : Drawer(
+                    child: SafeArea(
+                      child: ChatSidebar(
+                        onNewChat: _newChat,
+                        onOpenSettings: _openSettings,
+                        chats: _history.chats,
+                        activeChatId: _history.activeChatId,
+                        onSelectChat: _selectChat,
+                      ),
+                    ),
+                  ),
+            body: Row(
+              children: <Widget>[
+                const SizedBox(width: 8),
+                if (isWide)
+                  ChatSidebar(
+                    onNewChat: _newChat,
+                    onOpenSettings: _openSettings,
+                    chats: _history.chats,
+                    activeChatId: _history.activeChatId,
+                    onSelectChat: _selectChat,
+                  ),
+                if (isWide) VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                Expanded(
+                  child: Column(
+                    children: <Widget>[
+                      Expanded(
+                        child: _messages.isEmpty
+                            ? const _EmptyState()
+                            : ChatMessagesList(
+                                messages: _messages,
+                                controller: _scrollController,
+                                assistantLabel: assistantLabel,
+                                onRegenerateLast: _regenerateLast,
+                                onCopyMessage: (_) {},
+                                isBusy: _isBusy,
+                                showTypingIndicator: true,
+                              ),
+                      ),
+                      const Divider(height: 1),
+                      EnhancedChatInput(
+                        isBusy: _isBusy,
+                        onSend: _send,
+                        onStop: _stop,
+                        onFilesSelected: _onFilesSelected,
+                        onClearFiles: _onClearFiles,
+                        attachedFiles: _attachedFiles.map((e) => File.fromUri(Uri.file(e.path))).toList(),
+                        // onRemoveFile: _removeFile,
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-        ),
-        ),
         ),
       ),
     );
@@ -566,7 +545,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
         _activeMessageId = null;
       }
     }
-    
+
     await _history.selectChat(chatId);
     final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
     setState(() {
@@ -608,52 +587,57 @@ class _ChatAiPageState extends State<ChatAiPage> {
                 children: [
                   Text('Select model', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
-                  ...types.where((t) {
-                    final ProviderSettings ts = providersMap[t] ?? const ProviderSettings(enabled: false, apiKey: '');
-                    final List<String> models = <String>{
-                      if (t == AiProviderType.mock) 'mock-sim',
-                      if (ts.defaultModel != null && ts.defaultModel!.isNotEmpty) ts.defaultModel!,
-                      ...ts.customModels,
-                    }.toList();
-                    return models.isNotEmpty;
-                  }).map((t) {
-                    final ProviderSettings ts = providersMap[t] ?? const ProviderSettings(enabled: false, apiKey: '');
-                    final List<String> models = <String>{
-                      if (t == AiProviderType.mock) 'mock-sim',
-                      if (ts.defaultModel != null && ts.defaultModel!.isNotEmpty) ts.defaultModel!,
-                      ...ts.customModels,
-                    }.toList();
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  ...types
+                      .where((t) {
+                        final ProviderSettings ts = providersMap[t] ?? const ProviderSettings(enabled: false, apiKey: '');
+                        final List<String> models = <String>{
+                          if (t == AiProviderType.mock) 'mock-sim',
+                          if (ts.defaultModel != null && ts.defaultModel!.isNotEmpty) ts.defaultModel!,
+                          ...ts.customModels,
+                        }.toList();
+                        return models.isNotEmpty;
+                      })
+                      .map((t) {
+                        final ProviderSettings ts = providersMap[t] ?? const ProviderSettings(enabled: false, apiKey: '');
+                        final List<String> models = <String>{
+                          if (t == AiProviderType.mock) 'mock-sim',
+                          if (ts.defaultModel != null && ts.defaultModel!.isNotEmpty) ts.defaultModel!,
+                          ...ts.customModels,
+                        }.toList();
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(_providerLabel(t), style: Theme.of(context).textTheme.labelMedium),
+                            Row(
+                              children: [
+                                Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  child: Text(_providerLabel(t), style: Theme.of(context).textTheme.labelMedium),
+                                ),
+                                Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+                              ],
                             ),
-                            Expanded(child: Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: models
+                                  .map(
+                                    (m) => ChoiceChip(
+                                      label: Text(m),
+                                      selected: t == currentType && (ts.defaultModel == m || (t == AiProviderType.mock && m == 'mock-sim')),
+                                      onSelected: (_) {
+                                        Navigator.of(context).pop(_ModelSelectionResult(type: t, model: m));
+                                      },
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 12),
                           ],
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: models
-                              .map((m) => ChoiceChip(
-                                    label: Text(m),
-                                    selected: t == currentType && (ts.defaultModel == m || (t == AiProviderType.mock && m == 'mock-sim')),
-                                    onSelected: (_) {
-                                      Navigator.of(context).pop(_ModelSelectionResult(type: t, model: m));
-                                    },
-                                  ))
-                              .toList(),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                    );
-                  }).toList(),
+                        );
+                      })
+                      .toList(),
                 ],
               ),
             ),
@@ -693,7 +677,6 @@ class _ChatAiPageState extends State<ChatAiPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to verify ${_providerLabel(t)}')));
     }
   }
-
 }
 
 class _ModelSelectionResult {
@@ -717,10 +700,7 @@ class _EmptyState extends StatelessWidget {
             backgroundColor: colors.primary,
             child: Text(
               'K',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: colors.onPrimary,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: colors.onPrimary),
             ),
           ),
           const SizedBox(height: 12),

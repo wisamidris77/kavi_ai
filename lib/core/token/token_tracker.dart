@@ -33,8 +33,8 @@ class TokenTracker {
   Stream<TokenUsage> get usageStream => _usageController.stream;
   Stream<CostEstimate> get costStream => _costController.stream;
 
-  TokenUsage _currentUsage = TokenUsage();
-  CostEstimate _currentCost = CostEstimate();
+  TokenUsage _currentUsage = TokenUsage(lastUsed: DateTime.now());
+  CostEstimate _currentCost = CostEstimate(lastReset: DateTime.now());
 
   TokenTracker() {
     _loadUsage();
@@ -129,8 +129,8 @@ class TokenTracker {
   CostEstimate get currentCost => _currentCost;
 
   Future<void> resetUsage() async {
-    _currentUsage = TokenUsage();
-    _currentCost = CostEstimate();
+    _currentUsage = TokenUsage(lastUsed: DateTime.now());
+    _currentCost = CostEstimate(lastReset: DateTime.now());
     _usageController.add(_currentUsage);
     _costController.add(_currentCost);
     await _saveUsage();
@@ -167,10 +167,9 @@ class TokenUsage {
     this.inputTokens = 0,
     this.outputTokens = 0,
     this.conversations = 0,
-    DateTime? lastUsed,
+    required this.lastUsed,
     Map<String, TokenUsage>? conversationHistory,
-  }) : lastUsed = lastUsed ?? DateTime.now(),
-       conversationHistory = conversationHistory ?? const {};
+  }) : conversationHistory = conversationHistory ?? const {};
 
   TokenUsage copyWith({
     int? totalTokens,
@@ -227,8 +226,8 @@ class CostEstimate {
     this.totalCost = 0.0,
     this.dailyCost = 0.0,
     this.monthlyCost = 0.0,
-    DateTime? lastReset,
-  }) : lastReset = lastReset ?? DateTime.now();
+    required this.lastReset,
+  });
 
   CostEstimate copyWith({
     double? totalCost,

@@ -230,14 +230,14 @@ class _EnhancedChatInputState extends State<EnhancedChatInput> {
                               const SizedBox(height: 4),
                               Text(
                                 file.path.split('/').last,
-                                style: colors.onSurfaceVariant.copyWith(fontSize: 12),
+                                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
                               ),
                               Text(
                                 _getFileSize(file),
-                                style: colors.onSurfaceVariant.copyWith(fontSize: 10),
+                                style: TextStyle(color: colors.onSurfaceVariant, fontSize: 10),
                               ),
                             ],
                           ),
@@ -332,7 +332,7 @@ class _EnhancedChatInputState extends State<EnhancedChatInput> {
                           ),
                           disabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide(color: colors.outlineVariant.withOpacity(0.5)),
+                            borderSide: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
                           ),
                           suffixIcon: Padding(
                             padding: const EdgeInsets.only(right: 4),

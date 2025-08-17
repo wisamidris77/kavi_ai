@@ -17,67 +17,77 @@ class KeyboardShortcuts extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!enabled) return child;
 
-    final shortcutMap = <LogicalKeySet, VoidCallback>{};
+    final shortcutMap = <ShortcutActivator, Intent>{};
+    final actions = <Type, Action<Intent>>{};
     
     for (final entry in shortcuts.entries) {
-      shortcutMap[entry.key.logicalKeySet] = entry.value;
+      final intent = CallbackIntent(entry.value);
+      shortcutMap[entry.key.activator] = intent;
+      actions[intent.runtimeType] = CallbackAction<CallbackIntent>(
+        onInvoke: (intent) => intent.callback(),
+      );
     }
 
     return Shortcuts(
       shortcuts: shortcutMap,
       child: Actions(
-        actions: shortcutMap.map((key, callback) => MapEntry(
-          key,
-          CallbackAction<ShortcutKey>(onInvoke: (_) => callback()),
-        )),
+        actions: actions,
         child: child,
       ),
     );
   }
 }
 
+class CallbackIntent extends Intent {
+  final VoidCallback callback;
+  const CallbackIntent(this.callback);
+}
+
 class ShortcutKey {
-  final LogicalKeySet logicalKeySet;
+  final ShortcutActivator activator;
   final String description;
   final String category;
 
   const ShortcutKey({
-    required this.logicalKeySet,
+    required this.activator,
     required this.description,
     required this.category,
   });
 
   String get displayText {
-    final keys = logicalKeySet.keys.map((key) => _getKeyDisplay(key)).join(' + ');
-    return keys;
-  }
-
-  String _getKeyDisplay(LogicalKeyboardKey key) {
-    if (key == LogicalKeyboardKey.control) return 'Ctrl';
-    if (key == LogicalKeyboardKey.meta) return 'Cmd';
-    if (key == LogicalKeyboardKey.shift) return 'Shift';
-    if (key == LogicalKeyboardKey.alt) return 'Alt';
-    if (key == LogicalKeyboardKey.enter) return 'Enter';
-    if (key == LogicalKeyboardKey.escape) return 'Esc';
-    if (key == LogicalKeyboardKey.backspace) return 'Backspace';
-    if (key == LogicalKeyboardKey.delete) return 'Delete';
-    if (key == LogicalKeyboardKey.arrowUp) return '↑';
-    if (key == LogicalKeyboardKey.arrowDown) return '↓';
-    if (key == LogicalKeyboardKey.arrowLeft) return '←';
-    if (key == LogicalKeyboardKey.arrowRight) return '→';
-    if (key == LogicalKeyboardKey.home) return 'Home';
-    if (key == LogicalKeyboardKey.end) return 'End';
-    if (key == LogicalKeyboardKey.pageUp) return 'Page Up';
-    if (key == LogicalKeyboardKey.pageDown) return 'Page Down';
-    if (key == LogicalKeyboardKey.tab) return 'Tab';
-    if (key == LogicalKeyboardKey.space) return 'Space';
-    
-    // Handle letter keys
-    if (key.keyLabel != null) {
-      return key.keyLabel!.toUpperCase();
+    if (activator is SingleActivator) {
+      final single = activator as SingleActivator;
+      final parts = <String>[];
+      
+      if (single.control) parts.add('Ctrl');
+      if (single.meta) parts.add('Cmd');
+      if (single.alt) parts.add('Alt');
+      if (single.shift) parts.add('Shift');
+      
+      final key = single.trigger;
+      if (key == LogicalKeyboardKey.enter) {
+        parts.add('Enter');
+      } else if (key == LogicalKeyboardKey.escape) {
+        parts.add('Esc');
+      } else if (key == LogicalKeyboardKey.tab) {
+        parts.add('Tab');
+      } else if (key == LogicalKeyboardKey.space) {
+        parts.add('Space');
+      } else if (key == LogicalKeyboardKey.delete) {
+        parts.add('Delete');
+      } else if (key == LogicalKeyboardKey.backspace) {
+        parts.add('Backspace');
+      } else if (key == LogicalKeyboardKey.comma) {
+        parts.add(',');
+      } else if (key == LogicalKeyboardKey.slash) {
+        parts.add('/');
+      } else {
+        parts.add(key.keyLabel);
+      }
+      
+      return parts.join('+');
     }
-    
-    return key.debugName ?? 'Unknown';
+    return 'Unknown';
   }
 }
 
@@ -116,7 +126,7 @@ class KeyboardShortcutManager extends ChangeNotifier {
     }
   }
 
-  List<ShortcutKey> getShortcutsByCategory(String category) {
+  List<ShortcutKey> getShortcutsForCategory(String category) {
     return _shortcuts.values.where((shortcut) => shortcut.category == category).toList();
   }
 
@@ -133,157 +143,157 @@ class KeyboardShortcutManager extends ChangeNotifier {
 class AppShortcuts {
   // Navigation
   static const newChat = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyN),
+    activator: SingleActivator(LogicalKeyboardKey.keyN, control: true),
     description: 'New Chat',
     category: 'Navigation',
   );
 
   static const openSettings = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.comma),
+    activator: SingleActivator(LogicalKeyboardKey.comma, control: true),
     description: 'Open Settings',
     category: 'Navigation',
   );
 
   static const openCommandPalette = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyK),
+    activator: SingleActivator(LogicalKeyboardKey.keyK, control: true),
     description: 'Open Command Palette',
     category: 'Navigation',
   );
 
   static const openMCPTools = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyT),
+    activator: SingleActivator(LogicalKeyboardKey.keyT, control: true),
     description: 'Open MCP Tools',
     category: 'Navigation',
   );
 
   // Chat Actions
   static const sendMessage = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.enter),
+    activator: SingleActivator(LogicalKeyboardKey.enter),
     description: 'Send Message',
     category: 'Chat',
   );
 
   static const sendMessageShift = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.shift, LogicalKeyboardKey.enter),
+    activator: SingleActivator(LogicalKeyboardKey.enter, shift: true),
     description: 'New Line',
     category: 'Chat',
   );
 
   static const stopGeneration = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.escape),
+    activator: SingleActivator(LogicalKeyboardKey.escape),
     description: 'Stop Generation',
     category: 'Chat',
   );
 
   static const regenerateResponse = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyR),
+    activator: SingleActivator(LogicalKeyboardKey.keyR, control: true),
     description: 'Regenerate Response',
     category: 'Chat',
   );
 
   // Message Actions
   static const copyMessage = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyC),
+    activator: SingleActivator(LogicalKeyboardKey.keyC, control: true),
     description: 'Copy Message',
     category: 'Messages',
   );
 
   static const editMessage = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.keyE),
+    activator: SingleActivator(LogicalKeyboardKey.keyE),
     description: 'Edit Message',
     category: 'Messages',
   );
 
   static const deleteMessage = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.delete),
+    activator: SingleActivator(LogicalKeyboardKey.delete),
     description: 'Delete Message',
     category: 'Messages',
   );
 
   static const pinMessage = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyP),
+    activator: SingleActivator(LogicalKeyboardKey.keyP, control: true),
     description: 'Pin Message',
     category: 'Messages',
   );
 
   // Search
   static const searchMessages = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF),
+    activator: SingleActivator(LogicalKeyboardKey.keyF, control: true),
     description: 'Search Messages',
     category: 'Search',
   );
 
   static const searchNext = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.keyF3),
+    activator: SingleActivator(LogicalKeyboardKey.f3),
     description: 'Next Search Result',
     category: 'Search',
   );
 
   static const searchPrevious = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.shift, LogicalKeyboardKey.keyF3),
+    activator: SingleActivator(LogicalKeyboardKey.f3, shift: true),
     description: 'Previous Search Result',
     category: 'Search',
   );
 
   // File Operations
   static const attachFile = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyU),
+    activator: SingleActivator(LogicalKeyboardKey.keyU, control: true),
     description: 'Attach File',
     category: 'Files',
   );
 
   static const exportChat = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyE),
+    activator: SingleActivator(LogicalKeyboardKey.keyE, control: true),
     description: 'Export Chat',
     category: 'Files',
   );
 
   // View
   static const toggleSidebar = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyB),
+    activator: SingleActivator(LogicalKeyboardKey.keyB, control: true),
     description: 'Toggle Sidebar',
     category: 'View',
   );
 
   static const toggleTheme = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyJ),
+    activator: SingleActivator(LogicalKeyboardKey.keyJ, control: true),
     description: 'Toggle Theme',
     category: 'View',
   );
 
   static const zoomIn = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.equal),
+    activator: SingleActivator(LogicalKeyboardKey.equal, control: true),
     description: 'Zoom In',
     category: 'View',
   );
 
   static const zoomOut = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.minus),
+    activator: SingleActivator(LogicalKeyboardKey.minus, control: true),
     description: 'Zoom Out',
     category: 'View',
   );
 
   static const resetZoom = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit0),
+    activator: SingleActivator(LogicalKeyboardKey.digit0, control: true),
     description: 'Reset Zoom',
     category: 'View',
   );
 
   // System
   static const quit = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyQ),
+    activator: SingleActivator(LogicalKeyboardKey.keyQ, control: true),
     description: 'Quit Application',
     category: 'System',
   );
 
   static const help = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.f1),
+    activator: SingleActivator(LogicalKeyboardKey.f1),
     description: 'Show Help',
     category: 'System',
   );
 
   static const about = ShortcutKey(
-    logicalKeySet: LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyI),
+    activator: SingleActivator(LogicalKeyboardKey.keyI, control: true),
     description: 'About',
     category: 'System',
   );
@@ -308,7 +318,7 @@ class ShortcutsHelpDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceVariant,
+                color: colorScheme.surfaceContainerHighest,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
@@ -363,7 +373,7 @@ class ShortcutsHelpDialog extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: colorScheme.surfaceVariant,
+                                color: colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(color: colorScheme.outline),
                               ),
@@ -419,7 +429,7 @@ class ShortcutIndicator extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceVariant,
+            color: colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(4),
             border: Border.all(color: colorScheme.outline),
           ),
