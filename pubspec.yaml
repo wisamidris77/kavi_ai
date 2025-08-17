@@ -41,6 +41,7 @@ dependencies:
   gpt_markdown: ^1.1.2
   # Ollama client for Dart
   ollama_dart: ^0.2.3
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:

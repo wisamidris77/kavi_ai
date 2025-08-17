@@ -434,6 +434,14 @@ class _ProviderCardState extends State<_ProviderCard> {
         return 'DeepSeek';
       case AiProviderType.ollama:
         return 'Ollama';
+      case AiProviderType.anthropic:
+        return 'Anthropic';
+      case AiProviderType.gemini:
+        return 'Gemini';
+      case AiProviderType.mistral:
+        return 'Mistral';
+      case AiProviderType.cohere:
+        return 'Cohere';
       case AiProviderType.mock:
         return 'Mock';
     }

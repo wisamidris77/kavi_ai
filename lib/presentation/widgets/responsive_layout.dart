@@ -6,13 +6,7 @@ class ResponsiveLayout extends StatelessWidget {
   final Widget? desktop;
   final Widget? largeDesktop;
 
-  const ResponsiveLayout({
-    super.key,
-    required this.mobile,
-    this.tablet,
-    this.desktop,
-    this.largeDesktop,
-  });
+  const ResponsiveLayout({super.key, required this.mobile, this.tablet, this.desktop, this.largeDesktop});
 
   @override
   Widget build(BuildContext context) {
@@ -42,10 +36,7 @@ class ResponsiveBreakpoints {
 class ResponsiveBuilder extends StatelessWidget {
   final Widget Function(BuildContext, BoxConstraints) builder;
 
-  const ResponsiveBuilder({
-    super.key,
-    required this.builder,
-  });
+  const ResponsiveBuilder({super.key, required this.builder});
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +69,7 @@ class ResponsiveGrid extends StatelessWidget {
     return ResponsiveBuilder(
       builder: (context, constraints) {
         int columns = mobileColumns;
-        
+
         if (constraints.maxWidth >= ResponsiveBreakpoints.largeDesktop) {
           columns = largeDesktopColumns;
         } else if (constraints.maxWidth >= ResponsiveBreakpoints.desktop) {
@@ -134,18 +125,10 @@ class ResponsiveRow extends StatelessWidget {
       builder: (context, constraints) {
         if (constraints.maxWidth < ResponsiveBreakpoints.mobile) {
           // Stack vertically on mobile
-          return Column(
-            mainAxisAlignment: mainAxisAlignment,
-            crossAxisAlignment: crossAxisAlignment,
-            children: _addSpacing(children, spacing, true),
-          );
+          return Column(mainAxisAlignment: mainAxisAlignment, crossAxisAlignment: crossAxisAlignment, children: _addSpacing(children, spacing, true));
         } else {
           // Use row on larger screens
-          return Row(
-            mainAxisAlignment: mainAxisAlignment,
-            crossAxisAlignment: crossAxisAlignment,
-            children: _addSpacing(children, spacing, false),
-          );
+          return Row(mainAxisAlignment: mainAxisAlignment, crossAxisAlignment: crossAxisAlignment, children: _addSpacing(children, spacing, false));
         }
       },
     );
@@ -153,15 +136,12 @@ class ResponsiveRow extends StatelessWidget {
 
   List<Widget> _addSpacing(List<Widget> widgets, double spacing, bool isVertical) {
     if (widgets.isEmpty) return [];
-    
+
     final result = <Widget>[];
     for (int i = 0; i < widgets.length; i++) {
       result.add(widgets[i]);
       if (i < widgets.length - 1) {
-        result.add(isVertical 
-          ? SizedBox(height: spacing)
-          : SizedBox(width: spacing)
-        );
+        result.add(isVertical ? SizedBox(height: spacing) : SizedBox(width: spacing));
       }
     }
     return result;
@@ -176,15 +156,7 @@ class ResponsiveContainer extends StatelessWidget {
   final double? height;
   final BoxDecoration? decoration;
 
-  const ResponsiveContainer({
-    super.key,
-    required this.child,
-    this.padding,
-    this.margin,
-    this.width,
-    this.height,
-    this.decoration,
-  });
+  const ResponsiveContainer({super.key, required this.child, this.padding, this.margin, this.width, this.height, this.decoration});
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +164,7 @@ class ResponsiveContainer extends StatelessWidget {
       builder: (context, constraints) {
         double responsiveWidth = width ?? constraints.maxWidth;
         double responsivePadding = _getResponsivePadding(constraints.maxWidth);
-        
+
         // Adjust width for different screen sizes
         if (width == null) {
           if (constraints.maxWidth >= ResponsiveBreakpoints.largeDesktop) {
@@ -237,31 +209,21 @@ class ResponsiveSidebar extends StatelessWidget {
   final Color? backgroundColor;
   final bool showOnMobile;
 
-  const ResponsiveSidebar({
-    super.key,
-    required this.child,
-    this.width,
-    this.backgroundColor,
-    this.showOnMobile = false,
-  });
+  const ResponsiveSidebar({super.key, required this.child, this.width, this.backgroundColor, this.showOnMobile = false});
 
   @override
   Widget build(BuildContext context) {
     return ResponsiveBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < ResponsiveBreakpoints.tablet;
-        
+
         if (isMobile && !showOnMobile) {
           return const SizedBox.shrink();
         }
 
         double sidebarWidth = width ?? _getResponsiveWidth(constraints.maxWidth);
-        
-        return Container(
-          width: sidebarWidth,
-          color: backgroundColor ?? Theme.of(context).colorScheme.surface,
-          child: child,
-        );
+
+        return Container(width: sidebarWidth, color: backgroundColor ?? Theme.of(context).colorScheme.surface, child: child);
       },
     );
   }
@@ -306,7 +268,7 @@ class ResponsiveScaffold extends StatelessWidget {
     return ResponsiveBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < ResponsiveBreakpoints.tablet;
-        
+
         return Scaffold(
           appBar: appBar,
           body: body,
@@ -358,45 +320,37 @@ class ResponsiveNavigationRail extends StatelessWidget {
   Widget build(BuildContext context) {
     return ResponsiveBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < ResponsiveBreakpoints.tablet;
-        
-        if (isMobile) {
-          // Use bottom navigation on mobile
-          return BottomNavigationBar(
-            currentIndex: selectedIndex,
-            onTap: onDestinationSelected,
-            type: BottomNavigationBarType.fixed,
-            items: destinations.map((dest) => BottomNavigationBarItem(
-              icon: dest.icon,
-              label: dest.label,
-            )).toList(),
-          );
-        } else {
-          // Use navigation rail on larger screens
-          return NavigationRail(
-            destinations: destinations,
-            selectedIndex: selectedIndex,
-            onDestinationSelected: onDestinationSelected,
-            leading: leading,
-            trailing: trailing,
-            minWidth: minWidth ?? 56,
-            minExtendedWidth: minExtendedWidth ?? 72,
-            useIndicator: useIndicator,
-            backgroundColor: backgroundColor,
-            selectedIconTheme: selectedIconTheme != null 
-                ? IconThemeData(color: selectedIconTheme)
-                : null,
-            unselectedIconTheme: unselectedIconTheme != null 
-                ? IconThemeData(color: unselectedIconTheme)
-                : null,
-            selectedLabelTextStyle: selectedLabelTextStyle != null 
-                ? TextStyle(color: selectedLabelTextStyle)
-                : null,
-            unselectedLabelTextStyle: unselectedLabelTextStyle != null 
-                ? TextStyle(color: unselectedLabelTextStyle)
-                : null,
-          );
-        }
+        // final isMobile = constraints.maxWidth < ResponsiveBreakpoints.tablet;
+
+        // if (isMobile) {
+        //   // Use bottom navigation on mobile
+        //   return BottomNavigationBar(
+        //     currentIndex: selectedIndex,
+        //     onTap: onDestinationSelected,
+        //     type: BottomNavigationBarType.fixed,
+        //     items: destinations.map((dest) => BottomNavigationBarItem(
+        //       icon: dest.icon,
+        //       label: dest.tet,
+        //     )).toList(),
+        //   );
+        // } else {
+        // Use navigation rail on larger screens
+        return NavigationRail(
+          destinations: destinations,
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
+          leading: leading,
+          trailing: trailing,
+          minWidth: minWidth ?? 56,
+          minExtendedWidth: minExtendedWidth ?? 72,
+          useIndicator: useIndicator,
+          backgroundColor: backgroundColor,
+          selectedIconTheme: selectedIconTheme != null ? IconThemeData(color: selectedIconTheme) : null,
+          unselectedIconTheme: unselectedIconTheme != null ? IconThemeData(color: unselectedIconTheme) : null,
+          selectedLabelTextStyle: selectedLabelTextStyle != null ? TextStyle(color: selectedLabelTextStyle) : null,
+          unselectedLabelTextStyle: unselectedLabelTextStyle != null ? TextStyle(color: unselectedLabelTextStyle) : null,
+        );
+        // }
       },
     );
   }

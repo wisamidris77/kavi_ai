@@ -10,6 +10,7 @@ class ChatMessageModel {
 		required this.id,
 		required this.role,
 		required this.content,
+		this.chatId,
 		this.toolCallIds = const <String>[],
 		this.createdAt,
 		this.metadata,
@@ -20,6 +21,7 @@ class ChatMessageModel {
 	final String content;
 	@JsonKey(defaultValue: <String>[])
 	final List<String> toolCallIds;
+  final String? chatId; 
 	final DateTime? createdAt;
 	final Map<String, dynamic>? metadata;
 

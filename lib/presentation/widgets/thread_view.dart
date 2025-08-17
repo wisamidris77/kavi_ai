@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
 import '../../core/thread/thread_storage_service.dart';
+import '../../domain/models/chat_role.dart' as domain_msg;
 
 class ThreadView extends StatefulWidget {
   final List<ThreadMessage> threadMessages;
-  final Function(domain_msg.ChatMessage)? onMessageSelected;
-  final Function(domain_msg.ChatMessage)? onReplyToMessage;
+  final Function(domain_msg.ChatMessageModel)? onMessageSelected;
+  final Function(domain_msg.ChatMessageModel)? onReplyToMessage;
   final bool showThreadIndicator;
 
   const ThreadView({
@@ -157,7 +159,7 @@ class _ThreadMessageTile extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      _formatTimestamp(threadMessage.message.timestamp),
+                      _formatTimestamp(threadMessage.message.createdAt ?? DateTime.now()),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -215,7 +217,7 @@ class _ThreadMessageTile extends StatelessWidget {
 }
 
 class ThreadMessage {
-  final domain_msg.ChatMessage message;
+  final domain_msg.ChatMessageModel message;
   final String? parentMessageId;
   final int depth;
   final List<String> childMessageIds;
@@ -228,7 +230,7 @@ class ThreadMessage {
   });
 
   ThreadMessage copyWith({
-    domain_msg.ChatMessage? message,
+    domain_msg.ChatMessageModel? message,
     String? parentMessageId,
     int? depth,
     List<String>? childMessageIds,
@@ -250,7 +252,7 @@ class ThreadMessage {
     };
   }
 
-  factory ThreadMessage.fromJson(Map<String, dynamic> json, domain_msg.ChatMessage message) {
+  factory ThreadMessage.fromJson(Map<String, dynamic> json, domain_msg.ChatMessageModel message) {
     return ThreadMessage(
       message: message,
       parentMessageId: json['parentMessageId'] as String?,
@@ -299,10 +301,10 @@ class ThreadManager extends ChangeNotifier {
       }
     }
 
-    return replies..sort((a, b) => a.message.timestamp.compareTo(b.message.timestamp));
+    return replies..sort((a, b) => a.message.createdAt!.compareTo(b.message.createdAt!));
   }
 
-  void addReply(domain_msg.ChatMessage parentMessage, domain_msg.ChatMessage replyMessage) {
+  void addReply(domain_msg.ChatMessageModel parentMessage, domain_msg.ChatMessageModel replyMessage) {
     final parentThreadMessage = _threadMessages[parentMessage.id];
     final depth = parentThreadMessage?.depth ?? 0;
 
@@ -369,12 +371,13 @@ class ThreadManager extends ChangeNotifier {
     try {
       final threads = _threadMessages.values.map((threadMessage) {
         return ThreadRecord(
-          parentMessageId: threadMessage.parentMessage.id,
-          chatId: threadMessage.parentMessage.chatId ?? '',
-          parentContent: threadMessage.parentMessage.content,
-          parentTimestamp: threadMessage.parentMessage.createdAt,
+          parentMessageId: threadMessage.message.id,
+          chatId: threadMessage.message.chatId ?? '',
+          parentContent: threadMessage.message.content,
+          parentTimestamp: threadMessage.message.createdAt ?? DateTime.now(),
+          role: threadMessage.message.role.name,
           replies: threadMessage.childMessageIds.map((childId) {
-            final childMessage = _threadMessages[childId]?.parentMessage;
+            final childMessage = _threadMessages[childId]?.message;
             return ThreadReply(
               id: childId,
               content: childMessage?.content ?? '',
@@ -408,7 +411,7 @@ class ThreadManager extends ChangeNotifier {
         final childMessageIds = record.replies.map((r) => r.id).toList();
         
         final threadMessage = ThreadMessage(
-          parentMessage: parentMessage,
+            message: parentMessage,
           childMessageIds: childMessageIds,
         );
         
@@ -484,7 +487,7 @@ class ThreadIndicator extends StatelessWidget {
 }
 
 class ThreadReplyButton extends StatelessWidget {
-  final domain_msg.ChatMessage message;
+  final domain_msg.ChatMessageModel message;
   final VoidCallback? onReply;
 
   const ThreadReplyButton({
