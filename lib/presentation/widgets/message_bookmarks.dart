@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
+import '../../domain/models/chat_role.dart';
 import '../../core/bookmarks/bookmarks_storage_service.dart';
 
 class MessageBookmarks extends StatefulWidget {
   final List<BookmarkedMessage> bookmarkedMessages;
-  final Function(domain_msg.ChatMessage)? onMessageSelected;
+  final Function(domain_msg.ChatMessageModel)? onMessageSelected;
   final Function(BookmarkedMessage)? onRemoveBookmark;
   final bool showRemoveButton;
 
@@ -303,7 +305,7 @@ class _BookmarkTile extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    _formatTimestamp(bookmark.message.timestamp),
+                    _formatTimestamp(bookmark.message.createdAt ?? DateTime.now()),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -334,7 +336,7 @@ class _BookmarkTile extends StatelessWidget {
 }
 
 class BookmarkedMessage {
-  final domain_msg.ChatMessage message;
+  final domain_msg.ChatMessageModel message;
   final String note;
   final String category;
   final DateTime bookmarkedAt;
@@ -349,7 +351,7 @@ class BookmarkedMessage {
   });
 
   BookmarkedMessage copyWith({
-    domain_msg.ChatMessage? message,
+    domain_msg.ChatMessageModel? message,
     String? note,
     String? category,
     DateTime? bookmarkedAt,
@@ -374,7 +376,7 @@ class BookmarkedMessage {
     };
   }
 
-  factory BookmarkedMessage.fromJson(Map<String, dynamic> json, domain_msg.ChatMessage message) {
+  factory BookmarkedMessage.fromJson(Map<String, dynamic> json, domain_msg.ChatMessageModel message) {
     return BookmarkedMessage(
       message: message,
       note: json['note'] as String,
@@ -386,7 +388,7 @@ class BookmarkedMessage {
 }
 
 class BookmarkMessageButton extends StatelessWidget {
-  final domain_msg.ChatMessage message;
+  final domain_msg.ChatMessageModel message;
   final bool isBookmarked;
   final VoidCallback? onBookmark;
   final VoidCallback? onUnbookmark;
@@ -421,7 +423,7 @@ class BookmarkMessageButton extends StatelessWidget {
 }
 
 class BookmarkMessageDialog extends StatefulWidget {
-  final domain_msg.ChatMessage message;
+  final domain_msg.ChatMessageModel message;
   final Function(String note, String category, List<String> tags)? onBookmark;
 
   const BookmarkMessageDialog({
@@ -550,7 +552,7 @@ class BookmarkManager extends ChangeNotifier {
     return _bookmarks[messageId];
   }
 
-  void addBookmark(domain_msg.ChatMessage message, String note, String category, List<String> tags) {
+  void addBookmark(domain_msg.ChatMessageModel message, String note, String category, List<String> tags) {
     final bookmark = BookmarkedMessage(
       message: message,
       note: note,
@@ -591,7 +593,7 @@ class BookmarkManager extends ChangeNotifier {
           chatId: bookmark.message.chatId ?? '',
           content: bookmark.message.content,
           role: bookmark.message.role.name,
-          timestamp: bookmark.message.createdAt,
+          timestamp: bookmark.message.createdAt ?? DateTime.now(),
           note: bookmark.note,
           tags: bookmark.tags,
         );
@@ -614,7 +616,6 @@ class BookmarkManager extends ChangeNotifier {
           role: _parseRole(record.role),
           content: record.content,
           createdAt: record.timestamp,
-          chatId: record.chatId,
         );
         
         final bookmark = BookmarkedMessage(
@@ -634,16 +635,18 @@ class BookmarkManager extends ChangeNotifier {
     }
   }
 
-  domain_msg.ChatRole _parseRole(String role) {
+  ChatRole _parseRole(String role) {
     switch (role.toLowerCase()) {
       case 'user':
-        return domain_msg.ChatRole.user;
+        return ChatRole.user;
       case 'assistant':
-        return domain_msg.ChatRole.assistant;
+        return ChatRole.assistant;
       case 'system':
-        return domain_msg.ChatRole.system;
+        return ChatRole.system;
+      case 'tool':
+        return ChatRole.tool;
       default:
-        return domain_msg.ChatRole.user;
+        return ChatRole.user;
     }
   }
 }

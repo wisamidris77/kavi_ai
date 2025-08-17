@@ -3,6 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import '../../../core/chat/chat_message.dart';
 import 'tool_call_badge.dart';
+import '../../widgets/code_block_widget.dart';
+import '../../widgets/message_timestamp.dart';
+import '../../widgets/message_reactions.dart';
+import '../../widgets/message_editing.dart';
+import '../../widgets/token_usage_widget.dart';
+import '../../widgets/latex_rendering.dart';
 
 enum MessageStatus {
   sending,
@@ -19,6 +25,10 @@ class ChatMessageBubble extends StatelessWidget {
   final void Function(ChatMessage message)? onCopy;
   final MessageStatus? status;
   final String? errorMessage;
+  final int? tokenCount;
+  final bool showTimestamp;
+  final bool enableReactions;
+  final bool enableEditing;
 
   const ChatMessageBubble({
     super.key, 
@@ -29,6 +39,10 @@ class ChatMessageBubble extends StatelessWidget {
     this.onCopy,
     this.status,
     this.errorMessage,
+    this.tokenCount,
+    this.showTimestamp = true,
+    this.enableReactions = true,
+    this.enableEditing = true,
   });
 
   @override
@@ -84,6 +98,14 @@ class ChatMessageBubble extends StatelessWidget {
                           ),
                         ),
                       _MessageMarkdown(content: message.content),
+                      if (tokenCount != null && tokenCount! > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: TokenUsageWidget(
+                            tokenCount: tokenCount!,
+                            estimatedCost: _estimateCost(tokenCount!),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -99,6 +121,15 @@ class ChatMessageBubble extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Timestamp
+                    if (showTimestamp)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: MessageTimestamp(
+                          timestamp: message.timestamp ?? DateTime.now(),
+                          format: TimestampFormat.relative,
+                        ),
+                      ),
                     // Status indicator
                     if (status != null && message.role == ChatRole.user)
                       Padding(
@@ -107,6 +138,33 @@ class ChatMessageBubble extends StatelessWidget {
                           status: status!,
                           errorMessage: errorMessage,
                         ),
+                      ),
+                    // Reactions
+                    if (enableReactions)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: MessageReactions(
+                          messageId: message.id,
+                          initialReactions: const [],
+                          onReactionAdded: (reaction) {
+                            // Handle reaction added
+                          },
+                          onReactionRemoved: (reaction) {
+                            // Handle reaction removed
+                          },
+                        ),
+                      ),
+                    // Edit button for user messages
+                    if (enableEditing && message.role == ChatRole.user)
+                      IconButton(
+                        tooltip: 'Edit message',
+                        icon: const Icon(Icons.edit, size: 18),
+                        padding: const EdgeInsets.all(4),
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        onPressed: () {
+                          _showEditDialog(context);
+                        },
                       ),
                     IconButton(
                       tooltip: 'Copy message',
@@ -138,6 +196,27 @@ class ChatMessageBubble extends StatelessWidget {
       ),
     );
   }
+
+  double _estimateCost(int tokens) {
+    // Rough estimate based on common pricing
+    return tokens * 0.00002; // $0.02 per 1K tokens
+  }
+
+  void _showEditDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => MessageEditing(
+        initialContent: message.content,
+        onSave: (newContent) {
+          // Handle message edit
+          Navigator.of(context).pop();
+        },
+        onCancel: () {
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
 }
 
 class _MessageMarkdown extends StatelessWidget {
@@ -149,13 +228,163 @@ class _MessageMarkdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
     
-    return GptMarkdown(
-      content,
-      style: TextStyle(
-        color: colors.onSurface,
-        fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
-      ),
+    // Check if content contains LaTeX patterns
+    final hasLatex = _containsLatex(content);
+    
+    if (hasLatex) {
+      // Use LaTeX rendering for mathematical content
+      return LaTeXRendering(
+        content: content,
+        style: TextStyle(
+          color: colors.onSurface,
+          fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+        ),
+        enableMath: true,
+      );
+    }
+    
+    // Parse content to identify code blocks
+    final List<Widget> widgets = [];
+    final RegExp codeBlockRegex = RegExp(r'```(\w+)?\n([\s\S]*?)```');
+    final RegExp inlineCodeRegex = RegExp(r'`([^`]+)`');
+    
+    int lastEnd = 0;
+    for (final match in codeBlockRegex.allMatches(content)) {
+      // Add text before code block
+      if (match.start > lastEnd) {
+        final textContent = content.substring(lastEnd, match.start);
+        if (textContent.trim().isNotEmpty) {
+          // Check if this text portion contains LaTeX
+          if (_containsLatex(textContent)) {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: LaTeXRendering(
+                  content: textContent,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+                  ),
+                ),
+              ),
+            );
+          } else {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GptMarkdown(
+                  textContent,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+                  ),
+                ),
+              ),
+            );
+          }
+        }
+      }
+      
+      // Add code block
+      final language = match.group(1) ?? 'plaintext';
+      final code = match.group(2) ?? '';
+      
+      // Check if it's LaTeX code
+      if (language == 'latex' || language == 'tex') {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: LaTeXRendering(
+              content: code,
+              style: TextStyle(
+                color: colors.onSurface,
+                fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+              ),
+            ),
+          ),
+        );
+      } else {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: CodeBlockWidget(
+              code: code,
+              language: language,
+              showLineNumbers: code.split('\n').length > 5,
+            ),
+          ),
+        );
+      }
+      
+      lastEnd = match.end;
+    }
+    
+    // Add remaining text
+    if (lastEnd < content.length) {
+      final remainingContent = content.substring(lastEnd);
+      if (remainingContent.trim().isNotEmpty) {
+        if (_containsLatex(remainingContent)) {
+          widgets.add(
+            LaTeXRendering(
+              content: remainingContent,
+              style: TextStyle(
+                color: colors.onSurface,
+                fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+              ),
+            ),
+          );
+        } else {
+          widgets.add(
+            GptMarkdown(
+              remainingContent,
+              style: TextStyle(
+                color: colors.onSurface,
+                fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+              ),
+            ),
+          );
+        }
+      }
+    }
+    
+    // If no code blocks found, just use regular markdown or LaTeX
+    if (widgets.isEmpty) {
+      if (hasLatex) {
+        return LaTeXRendering(
+          content: content,
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+          ),
+        );
+      } else {
+        return GptMarkdown(
+          content,
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+          ),
+        );
+      }
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
     );
+  }
+  
+  bool _containsLatex(String text) {
+    // Check for common LaTeX patterns
+    return text.contains(r'$$') || // Block math
+           text.contains(r'$') || // Inline math
+           text.contains(r'\[') || // Block math alternative
+           text.contains(r'\(') || // Inline math alternative
+           text.contains(r'\begin{') || // LaTeX environments
+           text.contains(r'\frac') || // Common LaTeX commands
+           text.contains(r'\sum') ||
+           text.contains(r'\int') ||
+           text.contains(r'\sqrt');
   }
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 
 class CodeBlockWidget extends StatefulWidget {
   final String code;
@@ -216,10 +217,10 @@ class EnhancedMarkdownBuilder extends MarkdownElementBuilder {
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
     if (element.tag == 'pre') {
-      final codeElement = element.children.firstWhere(
-        (child) => child.tag == 'code',
+      final codeElement = element.children?.firstWhere(
+        (child) => child is md.Element && child.tag == 'code',
         orElse: () => element,
-      );
+      ) as md.Element? ?? element;
       
       String language = '';
       if (codeElement.attributes.containsKey('class')) {

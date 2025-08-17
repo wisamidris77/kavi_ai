@@ -5,8 +5,8 @@ import '../../domain/models/chat_role.dart' as domain_role;
 import '../../core/search/search_storage_service.dart';
 
 class MessageSearch extends StatefulWidget {
-  final List<domain_msg.ChatMessage> messages;
-  final Function(domain_msg.ChatMessage)? onMessageSelected;
+  final List<domain_msg.ChatMessageModel> messages;
+  final Function(domain_msg.ChatMessageModel)? onMessageSelected;
   final bool showFilters;
   final bool showSearchHistory;
 
@@ -29,7 +29,7 @@ class _MessageSearchState extends State<MessageSearch> {
   
   String _searchQuery = '';
   SearchFilter _currentFilter = SearchFilter.all;
-  List<domain_msg.ChatMessage> _searchResults = [];
+  List<domain_msg.ChatMessageModel> _searchResults = [];
   List<String> _searchHistory = [];
   bool _isSearching = false;
 
@@ -144,7 +144,7 @@ class _MessageSearchState extends State<MessageSearch> {
     _searchFocusNode.requestFocus();
   }
 
-  void _onResultSelected(domain_msg.ChatMessage message) {
+  void _onResultSelected(domain_msg.ChatMessageModel message) {
     _saveSearchHistory();
     widget.onMessageSelected?.call(message);
     Navigator.of(context).pop();
@@ -350,7 +350,7 @@ class _MessageSearchState extends State<MessageSearch> {
 }
 
 class _SearchResultTile extends StatelessWidget {
-  final domain_msg.ChatMessage message;
+  final domain_msg.ChatMessageModel message;
   final String searchQuery;
   final VoidCallback onTap;
 
@@ -389,7 +389,7 @@ class _SearchResultTile extends StatelessWidget {
         ),
       ),
       subtitle: Text(
-        _formatTimestamp(message.timestamp),
+        _formatTimestamp(message.createdAt ?? DateTime.now()),
         style: theme.textTheme.bodySmall?.copyWith(
           color: colorScheme.onSurfaceVariant,
         ),
