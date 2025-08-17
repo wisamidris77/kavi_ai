@@ -19,6 +19,10 @@ import 'widgets/enhanced_chat_input.dart';
 import 'widgets/chat_messages_list.dart';
 import 'widgets/chat_sidebar.dart';
 import '../widgets/command_palette.dart';
+import '../widgets/responsive_layout.dart';
+import '../widgets/message_search.dart';
+import '../widgets/message_pinning.dart';
+import '../widgets/message_bookmarks.dart';
 import '../chat/controller/chat_history_controller.dart';
 
 class _OpenCommandPaletteIntent extends Intent {
@@ -53,6 +57,13 @@ class _ChatAiPageState extends State<ChatAiPage> {
   bool _isBusy = false;
   String? _activeMessageId;
   List<FileInfo> _attachedFiles = [];
+  
+  // New state for features
+  bool _showSearch = false;
+  bool _showPinned = false;
+  bool _showBookmarks = false;
+  final List<String> _pinnedMessageIds = [];
+  final List<String> _bookmarkedMessageIds = [];
 
   late final ChatHistoryController _history;
   late final VoidCallback _historyListener;
@@ -440,7 +451,6 @@ class _ChatAiPageState extends State<ChatAiPage> {
         if (type == AiProviderType.mock) 'mock-sim',
     ].join(' • ');
 
-    final bool isWide = MediaQuery.of(context).size.width >= 900;
     final ColorScheme colors = Theme.of(context).colorScheme;
 
     return Shortcuts(
@@ -455,10 +465,20 @@ class _ChatAiPageState extends State<ChatAiPage> {
         },
         child: Focus(
           autofocus: true,
-          child: Scaffold(
+          child: ResponsiveLayout(
+            mobileWidget: _buildMobileLayout(assistantLabel, colors),
+            tabletWidget: _buildTabletLayout(assistantLabel, colors),
+            desktopWidget: _buildDesktopLayout(assistantLabel, colors),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(String assistantLabel, ColorScheme colors) {
+    return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: !isWide,
-        titleSpacing: isWide ? 20 : 0,
+        titleSpacing: 0,
         title: Align(
           alignment: Alignment.centerLeft,
           child: ConstrainedBox(
@@ -491,68 +511,278 @@ class _ChatAiPageState extends State<ChatAiPage> {
           ),
         ),
       ),
-      drawer: isWide
-          ? null
-          : Drawer(
-              child: SafeArea(
-                child: ChatSidebar(
-                  onNewChat: _newChat,
-                  onOpenSettings: _openSettings,
-                  chats: _history.chats,
-                  activeChatId: _history.activeChatId,
-                  onSelectChat: _selectChat,
-                ),
-              ),
-            ),
+      drawer: Drawer(
+        child: SafeArea(
+          child: ChatSidebar(
+            onNewChat: _newChat,
+            onOpenSettings: _openSettings,
+            chats: _history.chats,
+            activeChatId: _history.activeChatId,
+            onSelectChat: _selectChat,
+          ),
+        ),
+      ),
+      body: _buildChatContent(assistantLabel),
+    );
+  }
+
+  Widget _buildTabletLayout(String assistantLabel, ColorScheme colors) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        titleSpacing: 20,
+        title: _buildAppBarTitle(assistantLabel),
+      ),
+      body: Row(
+        children: <Widget>[
+          ChatSidebar(
+            onNewChat: _newChat,
+            onOpenSettings: _openSettings,
+            chats: _history.chats,
+            activeChatId: _history.activeChatId,
+            onSelectChat: _selectChat,
+          ),
+          VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
+          Expanded(child: _buildChatContent(assistantLabel)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout(String assistantLabel, ColorScheme colors) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        titleSpacing: 20,
+        title: _buildAppBarTitle(assistantLabel),
+        actions: [
+          // Search button
+          IconButton(
+            icon: Icon(_showSearch ? Icons.search_off : Icons.search),
+            onPressed: () {
+              setState(() {
+                _showSearch = !_showSearch;
+                if (!_showSearch) {
+                  _showPinned = false;
+                  _showBookmarks = false;
+                }
+              });
+            },
+            tooltip: _showSearch ? 'Close search' : 'Search messages',
+          ),
+          // Pinned messages button
+          IconButton(
+            icon: Icon(_showPinned ? Icons.push_pin : Icons.push_pin_outlined),
+            onPressed: () {
+              setState(() {
+                _showPinned = !_showPinned;
+                if (_showPinned) {
+                  _showSearch = false;
+                  _showBookmarks = false;
+                }
+              });
+            },
+            tooltip: _showPinned ? 'Hide pinned' : 'Show pinned messages',
+          ),
+          // Bookmarks button
+          IconButton(
+            icon: Icon(_showBookmarks ? Icons.bookmark : Icons.bookmark_border),
+            onPressed: () {
+              setState(() {
+                _showBookmarks = !_showBookmarks;
+                if (_showBookmarks) {
+                  _showSearch = false;
+                  _showPinned = false;
+                }
+              });
+            },
+            tooltip: _showBookmarks ? 'Hide bookmarks' : 'Show bookmarks',
+          ),
+          const VerticalDivider(width: 1),
+          IconButton(
+            icon: const Icon(Icons.tune),
+            onPressed: _openSettings,
+            tooltip: 'Settings',
+          ),
+          IconButton(
+            icon: const Icon(Icons.build_outlined),
+            onPressed: () => Navigator.pushNamed(context, '/mcp-tools'),
+            tooltip: 'MCP Tools',
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Row(
         children: <Widget>[
           const SizedBox(width: 8),
-          if (isWide)
-            ChatSidebar(
-              onNewChat: _newChat,
-              onOpenSettings: _openSettings,
-              chats: _history.chats,
-              activeChatId: _history.activeChatId,
-              onSelectChat: _selectChat,
-            ),
-          if (isWide)
-            VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
+          ChatSidebar(
+            onNewChat: _newChat,
+            onOpenSettings: _openSettings,
+            chats: _history.chats,
+            activeChatId: _history.activeChatId,
+            onSelectChat: _selectChat,
+          ),
+          VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
           Expanded(
             child: Column(
-              children: <Widget>[
-                Expanded(
-                  child: _messages.isEmpty
-                      ? const _EmptyState()
-                      : ChatMessagesList(
-                        messages: _messages, 
-                        controller: _scrollController, 
-                        assistantLabel: assistantLabel, 
-                        onRegenerateLast: _regenerateLast, 
-                        onCopyMessage: (_) {},
-                        isBusy: _isBusy,
-                        showTypingIndicator: true,
+              children: [
+                // Show search/pinned/bookmarks panel if active
+                if (_showSearch)
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      border: Border(
+                        bottom: BorderSide(color: colors.outlineVariant),
                       ),
-                ),
-                const Divider(height: 1),
-                EnhancedChatInput(
-                  isBusy: _isBusy,
-                  onSend: _send,
-                  onStop: _stop,
-                  onFilesSelected: _onFilesSelected,
-                  onClearFiles: _onClearFiles,
-                  attachedFiles: _attachedFiles,
-                  onRemoveFile: _removeFile,
-                ),
+                    ),
+                    child: MessageSearch(
+                      messages: _messages,
+                      onMessageSelected: (message) {
+                        // Scroll to message
+                        final index = _messages.indexOf(message);
+                        if (index != -1) {
+                          _scrollController.animateTo(
+                            index * 100.0, // Approximate height per message
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                        setState(() {
+                          _showSearch = false;
+                        });
+                      },
+                    ),
+                  ),
+                if (_showPinned)
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      border: Border(
+                        bottom: BorderSide(color: colors.outlineVariant),
+                      ),
+                    ),
+                    child: MessagePinning(
+                      messages: _messages.where((m) => _pinnedMessageIds.contains(m.id)).toList(),
+                      onUnpin: (messageId) {
+                        setState(() {
+                          _pinnedMessageIds.remove(messageId);
+                        });
+                      },
+                      onMessageTap: (message) {
+                        // Scroll to message
+                        final index = _messages.indexOf(message);
+                        if (index != -1) {
+                          _scrollController.animateTo(
+                            index * 100.0,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                if (_showBookmarks)
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      border: Border(
+                        bottom: BorderSide(color: colors.outlineVariant),
+                      ),
+                    ),
+                    child: MessageBookmarks(
+                      messages: _messages.where((m) => _bookmarkedMessageIds.contains(m.id)).toList(),
+                      onRemoveBookmark: (messageId) {
+                        setState(() {
+                          _bookmarkedMessageIds.remove(messageId);
+                        });
+                      },
+                      onMessageTap: (message) {
+                        // Scroll to message
+                        final index = _messages.indexOf(message);
+                        if (index != -1) {
+                          _scrollController.animateTo(
+                            index * 100.0,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                Expanded(child: _buildChatContent(assistantLabel)),
               ],
             ),
           ),
           const SizedBox(width: 8),
         ],
       ),
-        ),
-        ),
+    );
+  }
+
+  Widget _buildAppBarTitle(String assistantLabel) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTapDown: (details) => _openModelMenu(details.globalPosition),
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('KAVI', style: TextStyle(fontWeight: FontWeight.bold)),
+                    if (assistantLabel.isNotEmpty)
+                      Text(
+                        assistantLabel,
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 6),
+                const Icon(Icons.expand_more, size: 18),
+              ],
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildChatContent(String assistantLabel) {
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: _messages.isEmpty
+              ? const _EmptyState()
+              : ChatMessagesList(
+                messages: _messages, 
+                controller: _scrollController, 
+                assistantLabel: assistantLabel, 
+                onRegenerateLast: _regenerateLast, 
+                onCopyMessage: (_) {},
+                isBusy: _isBusy,
+                showTypingIndicator: true,
+              ),
+        ),
+        const Divider(height: 1),
+        EnhancedChatInput(
+          isBusy: _isBusy,
+          onSend: _send,
+          onStop: _stop,
+          onFilesSelected: _onFilesSelected,
+          onClearFiles: _onClearFiles,
+          attachedFiles: _attachedFiles,
+          onRemoveFile: _removeFile,
+        ),
+      ],
     );
   }
 
