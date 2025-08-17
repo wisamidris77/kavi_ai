@@ -23,6 +23,7 @@ import '../widgets/responsive_layout.dart';
 import '../widgets/message_search.dart';
 import '../widgets/message_pinning.dart';
 import '../widgets/message_bookmarks.dart';
+import '../widgets/thread_view.dart';
 import '../chat/controller/chat_history_controller.dart';
 
 class _OpenCommandPaletteIntent extends Intent {
@@ -31,6 +32,19 @@ class _OpenCommandPaletteIntent extends Intent {
 import '../chat/repository/chat_history_repository.dart';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
 import '../../domain/models/chat_role.dart' as domain_role;
+
+// Add ThreadMessage class
+class ThreadMessage {
+  final domain_msg.ChatMessageModel message;
+  final int depth;
+  final String? parentId;
+
+  ThreadMessage({
+    required this.message,
+    required this.depth,
+    this.parentId,
+  });
+}
 
 class ChatAiPage extends StatefulWidget {
   final AiChatService? service;
@@ -62,8 +76,11 @@ class _ChatAiPageState extends State<ChatAiPage> {
   bool _showSearch = false;
   bool _showPinned = false;
   bool _showBookmarks = false;
+  bool _showThread = false;
   final List<String> _pinnedMessageIds = [];
   final List<String> _bookmarkedMessageIds = [];
+  ChatMessage? _threadParentMessage;
+  final List<ThreadMessage> _threadMessages = [];
 
   late final ChatHistoryController _history;
   late final VoidCallback _historyListener;
@@ -556,15 +573,31 @@ class _ChatAiPageState extends State<ChatAiPage> {
         titleSpacing: 20,
         title: _buildAppBarTitle(assistantLabel),
         actions: [
+          // Thread view button
+          IconButton(
+            icon: Icon(_showThread ? Icons.account_tree : Icons.account_tree_outlined),
+            onPressed: () {
+              setState(() {
+                _showThread = !_showThread;
+                if (_showThread) {
+                  _showSearch = false;
+                  _showPinned = false;
+                  _showBookmarks = false;
+                }
+              });
+            },
+            tooltip: _showThread ? 'Hide thread' : 'Show thread view',
+          ),
           // Search button
           IconButton(
             icon: Icon(_showSearch ? Icons.search_off : Icons.search),
             onPressed: () {
               setState(() {
                 _showSearch = !_showSearch;
-                if (!_showSearch) {
+                if (_showSearch) {
                   _showPinned = false;
                   _showBookmarks = false;
+                  _showThread = false;
                 }
               });
             },
@@ -579,6 +612,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
                 if (_showPinned) {
                   _showSearch = false;
                   _showBookmarks = false;
+                  _showThread = false;
                 }
               });
             },
@@ -593,6 +627,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
                 if (_showBookmarks) {
                   _showSearch = false;
                   _showPinned = false;
+                  _showThread = false;
                 }
               });
             },
@@ -624,97 +659,9 @@ class _ChatAiPageState extends State<ChatAiPage> {
           ),
           VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
           Expanded(
-            child: Column(
-              children: [
-                // Show search/pinned/bookmarks panel if active
-                if (_showSearch)
-                  Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      border: Border(
-                        bottom: BorderSide(color: colors.outlineVariant),
-                      ),
-                    ),
-                    child: MessageSearch(
-                      messages: _messages,
-                      onMessageSelected: (message) {
-                        // Scroll to message
-                        final index = _messages.indexOf(message);
-                        if (index != -1) {
-                          _scrollController.animateTo(
-                            index * 100.0, // Approximate height per message
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                        setState(() {
-                          _showSearch = false;
-                        });
-                      },
-                    ),
-                  ),
-                if (_showPinned)
-                  Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      border: Border(
-                        bottom: BorderSide(color: colors.outlineVariant),
-                      ),
-                    ),
-                    child: MessagePinning(
-                      messages: _messages.where((m) => _pinnedMessageIds.contains(m.id)).toList(),
-                      onUnpin: (messageId) {
-                        setState(() {
-                          _pinnedMessageIds.remove(messageId);
-                        });
-                      },
-                      onMessageTap: (message) {
-                        // Scroll to message
-                        final index = _messages.indexOf(message);
-                        if (index != -1) {
-                          _scrollController.animateTo(
-                            index * 100.0,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                if (_showBookmarks)
-                  Container(
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      border: Border(
-                        bottom: BorderSide(color: colors.outlineVariant),
-                      ),
-                    ),
-                    child: MessageBookmarks(
-                      messages: _messages.where((m) => _bookmarkedMessageIds.contains(m.id)).toList(),
-                      onRemoveBookmark: (messageId) {
-                        setState(() {
-                          _bookmarkedMessageIds.remove(messageId);
-                        });
-                      },
-                      onMessageTap: (message) {
-                        // Scroll to message
-                        final index = _messages.indexOf(message);
-                        if (index != -1) {
-                          _scrollController.animateTo(
-                            index * 100.0,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                Expanded(child: _buildChatContent(assistantLabel)),
-              ],
-            ),
+            child: _showThread 
+              ? _buildThreadLayout(colors)
+              : _buildRegularChatLayout(assistantLabel, colors),
           ),
           const SizedBox(width: 8),
         ],
@@ -921,6 +868,196 @@ class _ChatAiPageState extends State<ChatAiPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to verify ${_providerLabel(t)}')));
+    }
+  }
+
+  Widget _buildThreadLayout(ColorScheme colors) {
+    return Row(
+      children: [
+        // Main chat on the left
+        Expanded(
+          flex: 2,
+          child: _buildChatContent(_getAssistantLabel()),
+        ),
+        // Thread view on the right
+        Container(
+          width: 1,
+          color: colors.outlineVariant,
+        ),
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: colors.surfaceVariant.withOpacity(0.3),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    border: Border(
+                      bottom: BorderSide(color: colors.outlineVariant),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_tree, color: colors.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Thread',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const Spacer(),
+                      if (_threadParentMessage != null)
+                        TextButton(
+                          onPressed: _clearThread,
+                          child: const Text('Clear'),
+                        ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ThreadView(
+                    threadMessages: _threadMessages,
+                    onMessageSelected: (message) {
+                      // Handle message selection in thread
+                      _startThreadFromMessage(
+                        ChatMessage(
+                          id: message.id,
+                          role: _mapDomainRoleToCore(message.role),
+                          content: message.content,
+                          createdAt: message.createdAt ?? DateTime.now(),
+                        ),
+                      );
+                    },
+                    onReplyToMessage: (message) {
+                      // Handle reply to message in thread
+                      _replyInThread(message);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getAssistantLabel() {
+    final AppSettings s = widget.settings.settings;
+    final AiProviderType type = s.activeProvider;
+    final ProviderSettings ps = s.providers[type] ?? const ProviderSettings(enabled: false, apiKey: '');
+    final String assistantLabel = [
+      _providerLabel(type),
+      if (ps.defaultModel != null && ps.defaultModel!.isNotEmpty) ps.defaultModel!,
+      if (ps.defaultModel == null || ps.defaultModel!.isEmpty)
+        if (type == AiProviderType.mock) 'mock-sim',
+    ].join(' • ');
+    return assistantLabel;
+  }
+
+  void _startThreadFromMessage(ChatMessage message) {
+    setState(() {
+      _threadParentMessage = message;
+      _threadMessages.clear();
+      _threadMessages.add(ThreadMessage(message: _mapCoreToDomain(message), depth: 0));
+    });
+  }
+
+  void _replyInThread(ChatMessage message) {
+    if (_threadParentMessage == null) return;
+
+    final newMessage = ChatMessage(
+      id: 'u_${DateTime.now().microsecondsSinceEpoch}',
+      role: ChatRole.user,
+      content: message.content,
+      createdAt: DateTime.now(),
+    );
+
+    setState(() {
+      _messages.add(newMessage);
+      _isBusy = true;
+    });
+    _scrollToBottomDeferred();
+
+    _subscription?.cancel();
+    _activeMessageId = null;
+    _subscription = _chatService
+        .sendMessage(history: List<ChatMessage>.from(_messages), prompt: message.content)
+        .listen((ChatMessage assistantUpdate) async {
+      _activeMessageId = assistantUpdate.id;
+      final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
+      setState(() {
+        if (existingIndex >= 0) {
+          _messages[existingIndex] = assistantUpdate;
+        } else {
+          _messages.add(assistantUpdate);
+        }
+      });
+      await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
+      _scrollToBottomDeferred();
+    }, onDone: () {
+      setState(() {
+        _isBusy = false;
+        _activeMessageId = null;
+      });
+    }, onError: (_) {
+      setState(() {
+        _isBusy = false;
+        _activeMessageId = null;
+      });
+    });
+
+    setState(() {
+      _threadMessages.add(ThreadMessage(
+        message: _mapCoreToDomain(newMessage),
+        depth: 1,
+        parentId: newMessage.id,
+      ));
+    });
+  }
+
+  void _clearThread() {
+    setState(() {
+      _threadParentMessage = null;
+      _threadMessages.clear();
+    });
+  }
+
+  domain_msg.ChatMessageModel _mapCoreToDomain(ChatMessage m) {
+    final domain_role.ChatRole role;
+    switch (m.role) {
+      case ChatRole.user:
+        role = domain_role.ChatRole.user;
+        break;
+      case ChatRole.assistant:
+        role = domain_role.ChatRole.assistant;
+        break;
+      case ChatRole.system:
+        role = domain_role.ChatRole.system;
+        break;
+      default:
+        role = domain_role.ChatRole.assistant;
+        break;
+    }
+    return domain_msg.ChatMessageModel(
+      id: m.id,
+      role: role,
+      content: m.content,
+      createdAt: m.createdAt,
+    );
+  }
+
+  ChatRole _mapDomainRoleToCore(domain_role.ChatRole r) {
+    switch (r) {
+      case domain_role.ChatRole.user:
+        return ChatRole.user;
+      case domain_role.ChatRole.assistant:
+        return ChatRole.assistant;
+      case domain_role.ChatRole.system:
+        return ChatRole.system;
+      default:
+        return ChatRole.assistant;
     }
   }
 

@@ -8,6 +8,7 @@ import '../../widgets/message_timestamp.dart';
 import '../../widgets/message_reactions.dart';
 import '../../widgets/message_editing.dart';
 import '../../widgets/token_usage_widget.dart';
+import '../../widgets/latex_rendering.dart';
 
 enum MessageStatus {
   sending,
@@ -227,6 +228,21 @@ class _MessageMarkdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
     
+    // Check if content contains LaTeX patterns
+    final hasLatex = _containsLatex(content);
+    
+    if (hasLatex) {
+      // Use LaTeX rendering for mathematical content
+      return LaTeXRendering(
+        content: content,
+        style: TextStyle(
+          color: colors.onSurface,
+          fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+        ),
+        enableMath: true,
+      );
+    }
+    
     // Parse content to identify code blocks
     final List<Widget> widgets = [];
     final RegExp codeBlockRegex = RegExp(r'```(\w+)?\n([\s\S]*?)```');
@@ -238,34 +254,67 @@ class _MessageMarkdown extends StatelessWidget {
       if (match.start > lastEnd) {
         final textContent = content.substring(lastEnd, match.start);
         if (textContent.trim().isNotEmpty) {
-          widgets.add(
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: GptMarkdown(
-                textContent,
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+          // Check if this text portion contains LaTeX
+          if (_containsLatex(textContent)) {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: LaTeXRendering(
+                  content: textContent,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+                  ),
                 ),
               ),
-            ),
-          );
+            );
+          } else {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GptMarkdown(
+                  textContent,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+                  ),
+                ),
+              ),
+            );
+          }
         }
       }
       
       // Add code block
       final language = match.group(1) ?? 'plaintext';
       final code = match.group(2) ?? '';
-      widgets.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: CodeBlockWidget(
-            code: code,
-            language: language,
-            showLineNumbers: code.split('\n').length > 5,
+      
+      // Check if it's LaTeX code
+      if (language == 'latex' || language == 'tex') {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: LaTeXRendering(
+              content: code,
+              style: TextStyle(
+                color: colors.onSurface,
+                fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+              ),
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: CodeBlockWidget(
+              code: code,
+              language: language,
+              showLineNumbers: code.split('\n').length > 5,
+            ),
+          ),
+        );
+      }
       
       lastEnd = match.end;
     }
@@ -274,33 +323,68 @@ class _MessageMarkdown extends StatelessWidget {
     if (lastEnd < content.length) {
       final remainingContent = content.substring(lastEnd);
       if (remainingContent.trim().isNotEmpty) {
-        widgets.add(
-          GptMarkdown(
-            remainingContent,
-            style: TextStyle(
-              color: colors.onSurface,
-              fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+        if (_containsLatex(remainingContent)) {
+          widgets.add(
+            LaTeXRendering(
+              content: remainingContent,
+              style: TextStyle(
+                color: colors.onSurface,
+                fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          widgets.add(
+            GptMarkdown(
+              remainingContent,
+              style: TextStyle(
+                color: colors.onSurface,
+                fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+              ),
+            ),
+          );
+        }
       }
     }
     
-    // If no code blocks found, just use regular markdown
+    // If no code blocks found, just use regular markdown or LaTeX
     if (widgets.isEmpty) {
-      return GptMarkdown(
-        content,
-        style: TextStyle(
-          color: colors.onSurface,
-          fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
-        ),
-      );
+      if (hasLatex) {
+        return LaTeXRendering(
+          content: content,
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+          ),
+        );
+      } else {
+        return GptMarkdown(
+          content,
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
+          ),
+        );
+      }
     }
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: widgets,
     );
+  }
+  
+  bool _containsLatex(String text) {
+    // Check for common LaTeX patterns
+    return text.contains(r'$$') || // Block math
+           text.contains(r'$') || // Inline math
+           text.contains(r'\[') || // Block math alternative
+           text.contains(r'\(') || // Inline math alternative
+           text.contains(r'\begin{') || // LaTeX environments
+           text.contains(r'\frac') || // Common LaTeX commands
+           text.contains(r'\sum') ||
+           text.contains(r'\int') ||
+           text.contains(r'\sqrt');
   }
 }
 
