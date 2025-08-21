@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kavi/core/chat/chat_message.dart';
-import '../../domain/models/chat_message_model.dart' as domain_msg;
 
 class MessageEditing extends StatefulWidget {
   final ChatMessage message;
@@ -183,8 +182,8 @@ class _MessageEditingState extends State<MessageEditing> {
 }
 
 class EditableMessage extends StatefulWidget {
-  final domain_msg.ChatMessageModel message;
-  final Widget Function(domain_msg.ChatMessageModel) messageBuilder;
+  final ChatMessage message;
+  final Widget Function(ChatMessage) messageBuilder;
   final Function(String newContent)? onEdit;
   final VoidCallback? onDelete;
   final bool showEditButton;
@@ -259,7 +258,7 @@ class _EditableMessageState extends State<EditableMessage> {
 }
 
 class _MessageActionButtons extends StatefulWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final bool showEditButton;

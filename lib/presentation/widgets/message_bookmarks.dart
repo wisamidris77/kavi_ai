@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../domain/models/chat_message_model.dart' as domain_msg;
-import '../../domain/models/chat_role.dart';
+import 'package:kavi/core/chat/chat_message.dart';
 import '../../core/bookmarks/bookmarks_storage_service.dart';
 
 class MessageBookmarks extends StatefulWidget {
   final List<BookmarkedMessage> bookmarkedMessages;
-  final Function(domain_msg.ChatMessageModel)? onMessageSelected;
+  final Function(ChatMessage)? onMessageSelected;
   final Function(BookmarkedMessage)? onRemoveBookmark;
   final bool showRemoveButton;
 
@@ -336,7 +335,7 @@ class _BookmarkTile extends StatelessWidget {
 }
 
 class BookmarkedMessage {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final String note;
   final String category;
   final DateTime bookmarkedAt;
@@ -351,7 +350,7 @@ class BookmarkedMessage {
   });
 
   BookmarkedMessage copyWith({
-    domain_msg.ChatMessageModel? message,
+    ChatMessage? message,
     String? note,
     String? category,
     DateTime? bookmarkedAt,
@@ -376,7 +375,7 @@ class BookmarkedMessage {
     };
   }
 
-  factory BookmarkedMessage.fromJson(Map<String, dynamic> json, domain_msg.ChatMessageModel message) {
+  factory BookmarkedMessage.fromJson(Map<String, dynamic> json, ChatMessage message) {
     return BookmarkedMessage(
       message: message,
       note: json['note'] as String,
@@ -388,7 +387,7 @@ class BookmarkedMessage {
 }
 
 class BookmarkMessageButton extends StatelessWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final bool isBookmarked;
   final VoidCallback? onBookmark;
   final VoidCallback? onUnbookmark;
@@ -423,7 +422,7 @@ class BookmarkMessageButton extends StatelessWidget {
 }
 
 class BookmarkMessageDialog extends StatefulWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final Function(String note, String category, List<String> tags)? onBookmark;
 
   const BookmarkMessageDialog({
@@ -552,7 +551,7 @@ class BookmarkManager extends ChangeNotifier {
     return _bookmarks[messageId];
   }
 
-  void addBookmark(domain_msg.ChatMessageModel message, String note, String category, List<String> tags) {
+  void addBookmark(ChatMessage message, String note, String category, List<String> tags) {
     final bookmark = BookmarkedMessage(
       message: message,
       note: note,
@@ -611,7 +610,7 @@ class BookmarkManager extends ChangeNotifier {
       
       _bookmarks.clear();
       for (final record in records) {
-        final message = domain_msg.ChatMessageModel(
+        final message = ChatMessage(
           id: record.messageId,
           role: _parseRole(record.role),
           content: record.content,

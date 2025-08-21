@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../domain/models/chat_message_model.dart' as domain_msg;
+import 'package:kavi/core/chat/chat_message.dart';
 import '../../core/thread/thread_storage_service.dart';
-import '../../domain/models/chat_role.dart' as domain_msg;
 
 class ThreadView extends StatefulWidget {
   final List<ThreadMessage> threadMessages;
-  final Function(domain_msg.ChatMessageModel)? onMessageSelected;
-  final Function(domain_msg.ChatMessageModel)? onReplyToMessage;
+  final Function(ChatMessage)? onMessageSelected;
+  final Function(ChatMessage)? onReplyToMessage;
   final bool showThreadIndicator;
 
   const ThreadView({
@@ -217,7 +216,7 @@ class _ThreadMessageTile extends StatelessWidget {
 }
 
 class ThreadMessage {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final String? parentMessageId;
   final int depth;
   final List<String> childMessageIds;
@@ -230,7 +229,7 @@ class ThreadMessage {
   });
 
   ThreadMessage copyWith({
-    domain_msg.ChatMessageModel? message,
+    ChatMessage? message,
     String? parentMessageId,
     int? depth,
     List<String>? childMessageIds,
@@ -252,7 +251,7 @@ class ThreadMessage {
     };
   }
 
-  factory ThreadMessage.fromJson(Map<String, dynamic> json, domain_msg.ChatMessageModel message) {
+  factory ThreadMessage.fromJson(Map<String, dynamic> json, ChatMessage message) {
     return ThreadMessage(
       message: message,
       parentMessageId: json['parentMessageId'] as String?,
@@ -304,7 +303,7 @@ class ThreadManager extends ChangeNotifier {
     return replies..sort((a, b) => a.message.createdAt!.compareTo(b.message.createdAt!));
   }
 
-  void addReply(domain_msg.ChatMessageModel parentMessage, domain_msg.ChatMessageModel replyMessage) {
+  void addReply(ChatMessage parentMessage, ChatMessage replyMessage) {
     final parentThreadMessage = _threadMessages[parentMessage.id];
     final depth = parentThreadMessage?.depth ?? 0;
 
@@ -400,7 +399,7 @@ class ThreadManager extends ChangeNotifier {
       
       _threadMessages.clear();
       for (final record in records) {
-        final parentMessage = domain_msg.ChatMessageModel(
+        final parentMessage = ChatMessage(
           id: record.parentMessageId,
           role: _parseRole(record.role),
           content: record.parentContent,
@@ -424,16 +423,16 @@ class ThreadManager extends ChangeNotifier {
     }
   }
 
-  domain_msg.ChatRole _parseRole(String role) {
+  ChatRole _parseRole(String role) {
     switch (role.toLowerCase()) {
       case 'user':
-        return domain_msg.ChatRole.user;
+        return ChatRole.user;
       case 'assistant':
-        return domain_msg.ChatRole.assistant;
+        return ChatRole.assistant;
       case 'system':
-        return domain_msg.ChatRole.system;
+        return ChatRole.system;
       default:
-        return domain_msg.ChatRole.user;
+        return ChatRole.user;
     }
   }
 }
@@ -487,7 +486,7 @@ class ThreadIndicator extends StatelessWidget {
 }
 
 class ThreadReplyButton extends StatelessWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final VoidCallback? onReply;
 
   const ThreadReplyButton({

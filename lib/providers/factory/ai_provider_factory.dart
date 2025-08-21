@@ -30,8 +30,8 @@ class AiProviderFactory {
         return MistralProvider(config);
       case AiProviderType.cohere:
         return CohereProvider(config);
+      //   return OllamaProvider(config);
       case AiProviderType.ollama:
-        return OllamaProvider(config);
       case AiProviderType.mock:
         return MockProvider(config);
     }

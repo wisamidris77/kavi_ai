@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../domain/models/chat_message_model.dart' as domain_msg;
-import '../../domain/models/chat_role.dart' as domain_msg;
+import 'package:kavi/core/chat/chat_message.dart';
 import '../../core/pinning/pinning_storage_service.dart';
 
 class MessagePinning extends StatefulWidget {
-  final List<domain_msg.ChatMessageModel> pinnedMessages;
-  final Function(domain_msg.ChatMessageModel)? onMessageSelected;
-  final Function(domain_msg.ChatMessageModel)? onUnpinMessage;
+  final List<ChatMessage> pinnedMessages;
+  final Function(ChatMessage)? onMessageSelected;
+  final Function(ChatMessage)? onUnpinMessage;
   final bool showUnpinButton;
 
   const MessagePinning({
@@ -136,7 +135,7 @@ class _MessagePinningState extends State<MessagePinning> {
 }
 
 class _PinnedMessageTile extends StatelessWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final VoidCallback? onTap;
   final VoidCallback? onUnpin;
   final bool showUnpinButton;
@@ -244,17 +243,17 @@ class _PinnedMessageTile extends StatelessWidget {
 }
 
 class PinnedMessageManager extends ChangeNotifier {
-  final List<domain_msg.ChatMessageModel> _pinnedMessages = [];
+  final List<ChatMessage> _pinnedMessages = [];
   final Set<String> _pinnedMessageIds = {};
   final PinningStorageService _storage = PinningStorageService();
 
-  List<domain_msg.ChatMessageModel> get pinnedMessages => List.unmodifiable(_pinnedMessages);
+  List<ChatMessage> get pinnedMessages => List.unmodifiable(_pinnedMessages);
 
-  bool isPinned(domain_msg.ChatMessageModel message) {
+  bool isPinned(ChatMessage message) {
     return _pinnedMessageIds.contains(message.id);
   }
 
-  void pinMessage(domain_msg.ChatMessageModel message) {
+  void pinMessage(ChatMessage message) {
     if (!isPinned(message)) {
       _pinnedMessages.add(message);
       _pinnedMessageIds.add(message.id);
@@ -263,7 +262,7 @@ class PinnedMessageManager extends ChangeNotifier {
     }
   }
 
-  void unpinMessage(domain_msg.ChatMessageModel message) {
+  void unpinMessage(ChatMessage message) {
     if (isPinned(message)) {
       _pinnedMessages.removeWhere((m) => m.id == message.id);
       _pinnedMessageIds.remove(message.id);
@@ -305,7 +304,7 @@ class PinnedMessageManager extends ChangeNotifier {
       _pinnedMessageIds.clear();
       
       for (final record in records) {
-        final message = domain_msg.ChatMessageModel(
+        final message = ChatMessage(
           id: record.messageId,
           role: _parseRole(record.role),
           content: record.content,
@@ -323,22 +322,22 @@ class PinnedMessageManager extends ChangeNotifier {
     }
   }
 
-  domain_msg.ChatRole _parseRole(String role) {
+  ChatRole _parseRole(String role) {
     switch (role.toLowerCase()) {
       case 'user':
-        return domain_msg.ChatRole.user;
+        return ChatRole.user;
       case 'assistant':
-        return domain_msg.ChatRole.assistant;
+        return ChatRole.assistant;
       case 'system':
-        return domain_msg.ChatRole.system;
+        return ChatRole.system;
       default:
-        return domain_msg.ChatRole.user;
+        return ChatRole.user;
     }
   }
 }
 
 class PinMessageButton extends StatelessWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final bool isPinned;
   final VoidCallback? onPin;
   final VoidCallback? onUnpin;

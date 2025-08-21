@@ -128,7 +128,7 @@ class ChatMessageBubble extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(right: 4),
                         child: MessageReactions(
-                          messageId: message.id,
+                          // messageId: message.id,
                           reactions: const [],
                           onReactionAdded: (reaction) {
                             // Handle reaction added
@@ -190,7 +190,7 @@ class ChatMessageBubble extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => MessageEditing(
-        message: message.toJson(),
+        message: message,
         onSave: (newContent) {
           // Handle message edit
           Navigator.of(context).pop();
@@ -211,120 +211,121 @@ class _MessageMarkdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
-
-    // Check if content contains LaTeX patterns
-    final hasLatex = _containsLatex(content);
-
-    if (hasLatex) {
-      // Use LaTeX rendering for mathematical content
-      return LaTeXRendering(
-        content: content,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GptMarkdown(
+        content,
         style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
-        enableMath: true,
-      );
-    }
+      ),
+    );
 
-    // Parse content to identify code blocks
-    final List<Widget> widgets = [];
-    final RegExp codeBlockRegex = RegExp(r'```(\w+)?\n([\s\S]*?)```');
-    final RegExp inlineCodeRegex = RegExp(r'`([^`]+)`');
+    // // Check if content contains LaTeX patterns
+    // final hasLatex = _containsLatex(content);
 
-    int lastEnd = 0;
-    for (final match in codeBlockRegex.allMatches(content)) {
-      // Add text before code block
-      if (match.start > lastEnd) {
-        final textContent = content.substring(lastEnd, match.start);
-        if (textContent.trim().isNotEmpty) {
-          // Check if this text portion contains LaTeX
-          if (_containsLatex(textContent)) {
-            widgets.add(
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: LaTeXRendering(
-                  content: textContent,
-                  style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
-                ),
-              ),
-            );
-          } else {
-            widgets.add(
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GptMarkdown(
-                  textContent,
-                  style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
-                ),
-              ),
-            );
-          }
-        }
-      }
+    // if (hasLatex) {
+    //   // Use LaTeX rendering for mathematical content
+    //   return LaTeXRendering(
+    //     content: content,
+    //     style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
+    //     enableMath: true,
+    //   );
+    // }
 
-      // Add code block
-      final language = match.group(1) ?? 'plaintext';
-      final code = match.group(2) ?? '';
+    // // Parse content to identify code blocks
+    // final List<Widget> widgets = [];
+    // final RegExp codeBlockRegex = RegExp(r'```(\w+)?\n([\s\S]*?)```');
+    // final RegExp inlineCodeRegex = RegExp(r'`([^`]+)`');
 
-      // Check if it's LaTeX code
-      if (language == 'latex' || language == 'tex') {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: LaTeXRendering(
-              content: code,
-              style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
-            ),
-          ),
-        );
-      } else {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: CodeBlockWidget(code: code, language: language, showLineNumbers: code.split('\n').length > 5),
-          ),
-        );
-      }
+    // int lastEnd = 0;
+    // for (final match in codeBlockRegex.allMatches(content)) {
+    //   // Add text before code block
+    //   if (match.start > lastEnd) {
+    //     final textContent = content.substring(lastEnd, match.start);
+    //     if (textContent.trim().isNotEmpty) {
+    //       // Check if this text portion contains LaTeX
+    //       if (_containsLatex(textContent)) {
+    //         widgets.add(
+    //           Padding(
+    //             padding: const EdgeInsets.only(bottom: 8),
+    //             child: LaTeXRendering(
+    //               content: textContent,
+    //               style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
+    //             ),
+    //           ),
+    //         );
+    //       } else {
+    //         widgets.add(
+    //           ,
+    //         );
+    //       }
+    //     }
+    //   }
 
-      lastEnd = match.end;
-    }
+    //   // Add code block
+    //   final language = match.group(1) ?? 'plaintext';
+    //   final code = match.group(2) ?? '';
 
-    // Add remaining text
-    if (lastEnd < content.length) {
-      final remainingContent = content.substring(lastEnd);
-      if (remainingContent.trim().isNotEmpty) {
-        if (_containsLatex(remainingContent)) {
-          widgets.add(
-            LaTeXRendering(
-              content: remainingContent,
-              style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
-            ),
-          );
-        } else {
-          widgets.add(
-            GptMarkdown(
-              remainingContent,
-              style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
-            ),
-          );
-        }
-      }
-    }
+    //   // Check if it's LaTeX code
+    //   if (language == 'latex' || language == 'tex') {
+    //     widgets.add(
+    //       Padding(
+    //         padding: const EdgeInsets.only(bottom: 8),
+    //         child: LaTeXRendering(
+    //           content: code,
+    //           style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
+    //         ),
+    //       ),
+    //     );
+    //   } else {
+    //     widgets.add(
+    //       Padding(
+    //         padding: const EdgeInsets.only(bottom: 8),
+    //         child: CodeBlockWidget(code: code, language: language, showLineNumbers: code.split('\n').length > 5),
+    //       ),
+    //     );
+    //   }
 
-    // If no code blocks found, just use regular markdown or LaTeX
-    if (widgets.isEmpty) {
-      if (hasLatex) {
-        return LaTeXRendering(
-          content: content,
-          style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
-        );
-      } else {
-        return GptMarkdown(
-          content,
-          style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
-        );
-      }
-    }
+    //   lastEnd = match.end;
+    // }
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
+    // // Add remaining text
+    // if (lastEnd < content.length) {
+    //   final remainingContent = content.substring(lastEnd);
+    //   if (remainingContent.trim().isNotEmpty) {
+    //     if (_containsLatex(remainingContent)) {
+    //       widgets.add(
+    //         LaTeXRendering(
+    //           content: remainingContent,
+    //           style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
+    //         ),
+    //       );
+    //     } else {
+    //       widgets.add(
+    //         GptMarkdown(
+    //           remainingContent,
+    //           style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
+    //         ),
+    //       );
+    //     }
+    //   }
+    // }
+
+    // // If no code blocks found, just use regular markdown or LaTeX
+    // if (widgets.isEmpty) {
+    //   if (hasLatex) {
+    //     return LaTeXRendering(
+    //       content: content,
+    //       style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
+    //     );
+    //   } else {
+    //     return GptMarkdown(
+    //       content,
+    //       style: TextStyle(color: colors.onSurface, fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize),
+    //     );
+    //   }
+    // }
+
+    // return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
   }
 
   bool _containsLatex(String text) {

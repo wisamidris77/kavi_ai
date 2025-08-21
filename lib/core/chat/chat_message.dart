@@ -5,6 +5,7 @@ enum ChatRole {
   user,
   assistant,
   system,
+  tool,
 }
 
 class ChatMessage {
@@ -12,6 +13,7 @@ class ChatMessage {
   final ChatRole role;
   final String content;
   final DateTime createdAt;
+  final String? chatId;
   final List<ToolCallInfo> toolCalls;
 
   const ChatMessage({
@@ -19,6 +21,7 @@ class ChatMessage {
     required this.role,
     required this.content,
     required this.createdAt,
+    this.chatId,
     this.toolCalls = const [],
   });
 
@@ -36,5 +39,24 @@ class ChatMessage {
       createdAt: createdAt ?? this.createdAt,
       toolCalls: toolCalls ?? this.toolCalls,
     );
+  }
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'],
+      role: ChatRole.values.byName(json['role']),
+      content: json['content'],
+      createdAt: DateTime.parse(json['createdAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'role': role.name,
+      'content': content,
+      'createdAt': createdAt.toIso8601String(),
+      'toolCalls': toolCalls.map((toolCall) => toolCall.toJson()).toList(),
+    };
   }
 } 

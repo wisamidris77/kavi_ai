@@ -22,8 +22,6 @@ import '../widgets/responsive_layout.dart';
 import '../widgets/thread_view.dart';
 import '../chat/controller/chat_history_controller.dart';
 import '../chat/repository/chat_history_repository.dart';
-import '../../domain/models/chat_message_model.dart' as domain_msg;
-import '../../domain/models/chat_role.dart' as domain_role;
 import '../../core/file/file_handler_service.dart';
 
 class _OpenCommandPaletteIntent extends Intent {
@@ -83,7 +81,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     await _history.load();
     // Start a fresh empty chat by default when opening the app
     await _history.createNewChat();
-    final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
+    final List<ChatMessage> hist = _history.activeChat?.messages ?? <ChatMessage>[];
     setState(() {
       _messages
         ..clear()
@@ -390,16 +388,16 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
   }
 
-  ChatMessage _mapDomainToCore(domain_msg.ChatMessageModel m) {
+  ChatMessage _mapDomainToCore(ChatMessage m) {
     final ChatRole role;
     switch (m.role) {
-      case domain_role.ChatRole.user:
+      case ChatRole.user:
         role = ChatRole.user;
         break;
-      case domain_role.ChatRole.assistant:
+      case ChatRole.assistant:
         role = ChatRole.assistant;
         break;
-      case domain_role.ChatRole.system:
+      case ChatRole.system:
         role = ChatRole.system;
         break;
       default:
@@ -691,7 +689,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
     }
 
     await _history.selectChat(chatId);
-    final List<domain_msg.ChatMessageModel> hist = _history.activeChat?.messages ?? <domain_msg.ChatMessageModel>[];
+    final List<ChatMessage> hist = _history.activeChat?.messages ?? <ChatMessage>[];
     setState(() {
       _isBusy = false;
       _messages
@@ -967,32 +965,32 @@ class _ChatAiPageState extends State<ChatAiPage> {
     });
   }
 
-  domain_msg.ChatMessageModel _mapCoreToDomain(ChatMessage m) {
-    final domain_role.ChatRole role;
+  ChatMessage _mapCoreToDomain(ChatMessage m) {
+    final ChatRole role;
     switch (m.role) {
       case ChatRole.user:
-        role = domain_role.ChatRole.user;
+        role = ChatRole.user;
         break;
       case ChatRole.assistant:
-        role = domain_role.ChatRole.assistant;
+        role = ChatRole.assistant;
         break;
       case ChatRole.system:
-        role = domain_role.ChatRole.system;
+        role = ChatRole.system;
         break;
       default:
-        role = domain_role.ChatRole.assistant;
+        role = ChatRole.assistant;
         break;
     }
-    return domain_msg.ChatMessageModel(id: m.id, role: role, content: m.content, createdAt: m.createdAt);
+    return ChatMessage(id: m.id, role: role, content: m.content, createdAt: m.createdAt);
   }
 
-  ChatRole _mapDomainRoleToCore(domain_role.ChatRole r) {
+  ChatRole _mapDomainRoleToCore(ChatRole r) {
     switch (r) {
-      case domain_role.ChatRole.user:
+      case ChatRole.user:
         return ChatRole.user;
-      case domain_role.ChatRole.assistant:
+      case ChatRole.assistant:
         return ChatRole.assistant;
-      case domain_role.ChatRole.system:
+      case ChatRole.system:
         return ChatRole.system;
       default:
         return ChatRole.assistant;

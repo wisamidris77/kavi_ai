@@ -37,13 +37,9 @@ class ProviderAiChatService implements AiChatService {
 		_controllers[messageId] = controller;
 
 		final domainHistory = history
-			.map((m) => domain.ChatMessageModel(
+			.map((m) => ChatMessage(
 				id: m.id,
-				role: switch (m.role) {
-					ChatRole.system => domain.ChatRole.system,
-					ChatRole.user => domain.ChatRole.user,
-					ChatRole.assistant => domain.ChatRole.assistant,
-				},
+				role: m.role,
 				content: m.content,
 				createdAt: m.createdAt,
 			))

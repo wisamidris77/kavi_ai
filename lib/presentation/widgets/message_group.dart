@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../domain/models/chat_message_model.dart' as domain_msg;
-import '../../domain/models/chat_role.dart' as domain_role;
+import 'package:kavi/core/chat/chat_message.dart';
 
 class MessageGroup extends StatelessWidget {
-  final List<domain_msg.ChatMessageModel> messages;
-  final Widget Function(domain_msg.ChatMessageModel) messageBuilder;
+  final List<ChatMessage> messages;
+  final Widget Function(ChatMessage) messageBuilder;
   final bool showSenderInfo;
   final bool showTimestamps;
   final Duration groupingThreshold;
@@ -25,7 +24,7 @@ class MessageGroup extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final firstMessage = messages.first;
-    final isUser = firstMessage.role == domain_role.ChatRole.user;
+    final isUser = firstMessage.role == ChatRole.user;
 
     return Container(
       margin: EdgeInsets.only(
@@ -87,13 +86,13 @@ class MessageGroup extends StatelessWidget {
     );
   }
 
-  String _getSenderName(domain_msg.ChatMessageModel message) {
+  String _getSenderName(ChatMessage message) {
     switch (message.role) {
-      case domain_role.ChatRole.user:
+      case ChatRole.user:
         return 'You';
-      case domain_role.ChatRole.assistant:
+      case ChatRole.assistant:
         return 'Assistant';
-      case domain_role.ChatRole.system:
+      case ChatRole.system:
         return 'System';
       default:
         return 'Unknown';
@@ -102,7 +101,7 @@ class MessageGroup extends StatelessWidget {
 }
 
 class _MessageBubble extends StatelessWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final bool isFirst;
   final bool isLast;
   final bool isUser;
@@ -192,7 +191,7 @@ class _MessageBubble extends StatelessWidget {
 }
 
 class _GroupTimestamp extends StatelessWidget {
-  final List<domain_msg.ChatMessageModel> messages;
+  final List<ChatMessage> messages;
   final Duration groupingThreshold;
 
   const _GroupTimestamp({
@@ -253,14 +252,14 @@ class _GroupTimestamp extends StatelessWidget {
 }
 
 class MessageGroupingHelper {
-  static List<List<domain_msg.ChatMessageModel>> groupMessages(
-    List<domain_msg.ChatMessageModel> messages, {
+  static List<List<ChatMessage>> groupMessages(
+    List<ChatMessage> messages, {
     Duration threshold = const Duration(minutes: 5),
   }) {
     if (messages.isEmpty) return [];
 
-    final groups = <List<domain_msg.ChatMessageModel>>[];
-    List<domain_msg.ChatMessageModel> currentGroup = [messages.first];
+    final groups = <List<ChatMessage>>[];
+    List<ChatMessage> currentGroup = [messages.first];
 
     for (int i = 1; i < messages.length; i++) {
       final currentMessage = messages[i];
@@ -287,8 +286,8 @@ class MessageGroupingHelper {
   }
 
   static bool _shouldGroupMessages(
-    domain_msg.ChatMessageModel message1,
-    domain_msg.ChatMessageModel message2,
+    ChatMessage message1,
+    ChatMessage message2,
     Duration threshold,
   ) {
     // Same sender
@@ -299,19 +298,19 @@ class MessageGroupingHelper {
     if (timeDifference > threshold) return false;
 
     // Not system messages (they should be separate)
-    if (message1.role == domain_role.ChatRole.system) return false;
+    if (message1.role == ChatRole.system) return false;
 
     return true;
   }
 
-  static List<domain_msg.ChatMessageModel> flattenGroups(
-    List<List<domain_msg.ChatMessageModel>> groups,
+  static List<ChatMessage> flattenGroups(
+    List<List<ChatMessage>> groups,
   ) {
     return groups.expand((group) => group).toList();
   }
 
   static int getGroupIndex(
-    List<List<domain_msg.ChatMessageModel>> groups,
+    List<List<ChatMessage>> groups,
     int messageIndex,
   ) {
     int currentIndex = 0;
@@ -329,7 +328,7 @@ class MessageGroupingHelper {
   }
 
   static int getMessageIndexInGroup(
-    List<List<domain_msg.ChatMessageModel>> groups,
+    List<List<ChatMessage>> groups,
     int messageIndex,
   ) {
     int currentIndex = 0;

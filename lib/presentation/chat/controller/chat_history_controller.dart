@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:kavi/core/chat/chat_message.dart';
 
 import '../../../domain/models/chat_message_model.dart' as domain_msg;
 import '../../../domain/models/chat_model.dart';
-import '../../../domain/models/chat_role.dart' as domain_role;
 import '../../../providers/base/provider_type.dart';
 import '../repository/chat_history_repository.dart';
 
@@ -48,7 +48,7 @@ class ChatHistoryController extends ChangeNotifier {
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: title ?? 'New chat',
       providerType: _defaultProvider,
-      messages: const <domain_msg.ChatMessageModel>[],
+      messages: const <ChatMessage>[],
     );
     _chats = <ChatModel>[chat, ..._chats];
     _activeChatId = chat.id;
@@ -67,9 +67,9 @@ class ChatHistoryController extends ChangeNotifier {
       await createNewChat();
     }
     final String messageId = id ?? DateTime.now().microsecondsSinceEpoch.toString();
-    final domain_msg.ChatMessageModel message = domain_msg.ChatMessageModel(
+    final ChatMessage message = ChatMessage(
       id: messageId,
-      role: domain_role.ChatRole.user,
+      role: ChatRole.user,
       content: content,
       createdAt: DateTime.now(),
     );
@@ -84,7 +84,7 @@ class ChatHistoryController extends ChangeNotifier {
         title: computedTitle,
         providerType: c.providerType,
         model: c.model,
-        messages: <domain_msg.ChatMessageModel>[...c.messages, message],
+        messages: <ChatMessage>[...c.messages, message],
         metadata: c.metadata,
       );
     }).toList();
@@ -95,19 +95,19 @@ class ChatHistoryController extends ChangeNotifier {
   Future<void> upsertAssistantMessage({required String id, required String content}) async {
     _chats = _chats.map((ChatModel c) {
       if (c.id != (_activeChatId ?? '')) return c;
-      final List<domain_msg.ChatMessageModel> updated = List<domain_msg.ChatMessageModel>.from(c.messages);
-      final int idx = updated.indexWhere((domain_msg.ChatMessageModel m) => m.id == id);
+      final List<ChatMessage> updated = List<ChatMessage>.from(c.messages);
+      final int idx = updated.indexWhere((ChatMessage m) => m.id == id);
       if (idx >= 0) {
-        updated[idx] = domain_msg.ChatMessageModel(
+        updated[idx] = ChatMessage(
           id: id,
-          role: domain_role.ChatRole.assistant,
+          role: ChatRole.assistant,
           content: content,
           createdAt: updated[idx].createdAt ?? DateTime.now(),
         );
       } else {
-        updated.add(domain_msg.ChatMessageModel(
+        updated.add(ChatMessage(
           id: id,
-          role: domain_role.ChatRole.assistant,
+          role: ChatRole.assistant,
           content: content,
           createdAt: DateTime.now(),
         ));
@@ -137,7 +137,7 @@ class ChatHistoryController extends ChangeNotifier {
         title: 'New chat',
         providerType: c.providerType,
         model: c.model,
-        messages: const <domain_msg.ChatMessageModel>[],
+        messages: const <ChatMessage>[],
         metadata: c.metadata,
       );
     }).toList();
@@ -149,9 +149,9 @@ class ChatHistoryController extends ChangeNotifier {
     if (activeChat == null) return;
     _chats = _chats.map((ChatModel c) {
       if (c.id != (_activeChatId ?? '')) return c;
-      final List<domain_msg.ChatMessageModel> updated = List<domain_msg.ChatMessageModel>.from(c.messages);
+      final List<ChatMessage> updated = List<ChatMessage>.from(c.messages);
       for (int i = updated.length - 1; i >= 0; i--) {
-        if (updated[i].role == domain_role.ChatRole.assistant) {
+        if (updated[i].role == ChatRole.assistant) {
           updated.removeAt(i);
           break;
         }

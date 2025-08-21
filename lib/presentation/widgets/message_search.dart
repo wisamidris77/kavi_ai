@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:kavi/core/chat/chat_message.dart';
 import 'dart:async';
-import '../../domain/models/chat_message_model.dart' as domain_msg;
-import '../../domain/models/chat_role.dart' as domain_role;
 import '../../core/search/search_storage_service.dart';
 
 class MessageSearch extends StatefulWidget {
-  final List<domain_msg.ChatMessageModel> messages;
-  final Function(domain_msg.ChatMessageModel)? onMessageSelected;
+  final List<ChatMessage> messages;
+  final Function(ChatMessage)? onMessageSelected;
   final bool showFilters;
   final bool showSearchHistory;
 
@@ -29,7 +28,7 @@ class _MessageSearchState extends State<MessageSearch> {
   
   String _searchQuery = '';
   SearchFilter _currentFilter = SearchFilter.all;
-  List<domain_msg.ChatMessageModel> _searchResults = [];
+  List<ChatMessage> _searchResults = [];
   List<String> _searchHistory = [];
   bool _isSearching = false;
 
@@ -107,13 +106,13 @@ class _MessageSearchState extends State<MessageSearch> {
       if (_currentFilter != SearchFilter.all) {
         switch (_currentFilter) {
           case SearchFilter.user:
-            if (message.role != domain_role.ChatRole.user) return false;
+            if (message.role != ChatRole.user) return false;
             break;
           case SearchFilter.assistant:
-            if (message.role != domain_role.ChatRole.assistant) return false;
+            if (message.role != ChatRole.assistant) return false;
             break;
           case SearchFilter.system:
-            if (message.role != domain_role.ChatRole.system) return false;
+            if (message.role != ChatRole.system) return false;
             break;
           default:
             break;
@@ -144,7 +143,7 @@ class _MessageSearchState extends State<MessageSearch> {
     _searchFocusNode.requestFocus();
   }
 
-  void _onResultSelected(domain_msg.ChatMessageModel message) {
+  void _onResultSelected(ChatMessage message) {
     _saveSearchHistory();
     widget.onMessageSelected?.call(message);
     Navigator.of(context).pop();
@@ -350,7 +349,7 @@ class _MessageSearchState extends State<MessageSearch> {
 }
 
 class _SearchResultTile extends StatelessWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final String searchQuery;
   final VoidCallback onTap;
 
@@ -364,7 +363,7 @@ class _SearchResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isUser = message.role == domain_role.ChatRole.user;
+    final isUser = message.role == ChatRole.user;
 
     return ListTile(
       leading: CircleAvatar(
@@ -417,13 +416,13 @@ class _SearchResultTile extends StatelessWidget {
     }
   }
 
-  IconData _getRoleIcon(domain_role.ChatRole role) {
+  IconData _getRoleIcon(ChatRole role) {
     switch (role) {
-      case domain_role.ChatRole.user:
+      case ChatRole.user:
         return Icons.person;
-      case domain_role.ChatRole.assistant:
+      case ChatRole.assistant:
         return Icons.smart_toy;
-      case domain_role.ChatRole.system:
+      case ChatRole.system:
         return Icons.settings;
       default:
         return Icons.message;

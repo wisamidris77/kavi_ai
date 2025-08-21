@@ -45,13 +45,9 @@ class McpAiChatService implements AiChatService {
 
     // Convert chat history to domain models
     final domainHistory = history
-        .map((m) => domain.ChatMessageModel(
+        .map((m) => ChatMessage(
               id: m.id,
-              role: switch (m.role) {
-                ChatRole.system => domain.ChatRole.system,
-                ChatRole.user => domain.ChatRole.user,
-                ChatRole.assistant => domain.ChatRole.assistant,
-              },
+              role: m.role,
               content: m.content,
               createdAt: m.createdAt,
             ))
@@ -68,9 +64,9 @@ class McpAiChatService implements AiChatService {
         
         domainHistory.insert(
           0,
-          domain.ChatMessageModel(
+          ChatMessage(
             id: 'mcp_system',
-            role: domain.ChatRole.system,
+            role: ChatRole.system,
             content: toolPrompt,
             createdAt: DateTime.now(),
           ),

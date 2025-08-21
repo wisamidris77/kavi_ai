@@ -1,9 +1,10 @@
+import 'package:kavi/core/chat/chat_message.dart';
+
 import '../../providers/base/ai_provider.dart';
 import '../../providers/base/provider_config.dart';
 import '../../providers/base/provider_type.dart';
 import '../../providers/factory/ai_provider_factory.dart';
 import '../models/chat_message_model.dart';
-import '../models/chat_role.dart';
 
 class AiChatService {
   AiChatService({
@@ -17,8 +18,8 @@ class AiChatService {
 
   /// Generate a single assistant reply based on the provided chat history
   /// plus a new user input.
-  Future<ChatMessageModel> generateReply({
-    required List<ChatMessageModel> history,
+  Future<ChatMessage> generateReply({
+    required List<ChatMessage> history,
     required String userInput,
     String? model,
     double? temperature,
@@ -31,7 +32,7 @@ class AiChatService {
       temperature: temperature,
       maxTokens: maxTokens,
     );
-    return ChatMessageModel(
+    return ChatMessage(
       id: _genId(),
       role: ChatRole.assistant,
       content: text,
@@ -42,7 +43,7 @@ class AiChatService {
   /// Stream the assistant reply token-by-token. Caller is responsible for
   /// aggregating the chunks.
   Stream<String> streamReply({
-    required List<ChatMessageModel> history,
+    required List<ChatMessage> history,
     required String userInput,
     String? model,
     double? temperature,
@@ -58,7 +59,7 @@ class AiChatService {
   }
 
   String _flattenHistoryWithUserInput({
-    required List<ChatMessageModel> history,
+    required List<ChatMessage> history,
     required String userInput,
   }) {
     final buffer = StringBuffer();

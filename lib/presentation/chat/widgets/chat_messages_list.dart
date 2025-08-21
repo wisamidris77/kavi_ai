@@ -53,16 +53,18 @@ class ChatMessagesList extends StatelessWidget {
         } else {
           // Multiple messages from same sender, group them
           allItems.add(MessageGroup(
-            messages: group,
-            role: group.first.role,
-            assistantLabel: assistantLabel,
-            onCopyMessage: onCopyMessage,
-            showRegenerate: group.last == messages.last && 
-                group.first.role == ChatRole.assistant && 
-                !isBusy,
-            onRegenerate: group.last == messages.last && 
-                group.first.role == ChatRole.assistant && 
-                !isBusy ? onRegenerateLast : null,
+            messages: group.toList(),
+            messageBuilder: (message) => ChatMessageBubble(
+              message: message,
+              assistantLabel: assistantLabel,
+              showRegenerate: group.last == messages.last && 
+                  group.first.role == ChatRole.assistant && 
+                  !isBusy,
+              onRegenerate: group.last == messages.last && 
+                  group.first.role == ChatRole.assistant && 
+                  !isBusy ? onRegenerateLast : null,
+              onCopy: onCopyMessage,
+            ),
           ));
         }
         

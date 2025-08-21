@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dart_mcp/client.dart' show Tool;
+import 'package:kavi/core/chat/chat_message.dart';
 
 import '../client/mcp_client_service.dart';
 import '../models/mcp_server_config.dart';
 import '../models/tool_call_info.dart';
 import '../../domain/models/chat_message_model.dart';
-import '../../domain/models/chat_role.dart';
 
 /// Service that integrates MCP tools with AI providers
 class McpIntegrationService {
@@ -47,7 +47,7 @@ class McpIntegrationService {
   }
 
   /// Execute a tool call and return both the result and tool call info
-  Future<(ChatMessageModel, ToolCallInfo)> executeToolCall({
+  Future<(ChatMessage, ToolCallInfo)> executeToolCall({
     required String toolKey,
     Map<String, dynamic>? arguments,
   }) async {
@@ -73,7 +73,7 @@ class McpIntegrationService {
         duration: endTime.difference(startTime),
       );
       
-      final message = ChatMessageModel(
+      final message = ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         role: ChatRole.tool,
         content: 'Tool: $toolKey\nResult:\n$formattedResult',
@@ -93,7 +93,7 @@ class McpIntegrationService {
         duration: endTime.difference(startTime),
       );
       
-      final message = ChatMessageModel(
+      final message = ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch.toString(),
         role: ChatRole.tool,
         content: 'Tool Error: $toolKey\nError: $e',
