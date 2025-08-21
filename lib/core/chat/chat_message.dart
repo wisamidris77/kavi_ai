@@ -1,12 +1,8 @@
+import 'package:kavi/presentation/widgets/message_reactions.dart';
 
 import '../../mcp/models/tool_call_info.dart';
 
-enum ChatRole {
-  user,
-  assistant,
-  system,
-  tool,
-}
+enum ChatRole { user, assistant, system, tool }
 
 class ChatMessage {
   final String id;
@@ -15,6 +11,7 @@ class ChatMessage {
   final DateTime createdAt;
   final String? chatId;
   final List<ToolCallInfo> toolCalls;
+  final List<MessageReaction> reactions;
 
   const ChatMessage({
     required this.id,
@@ -23,6 +20,7 @@ class ChatMessage {
     required this.createdAt,
     this.chatId,
     this.toolCalls = const [],
+    this.reactions = const [],
   });
 
   ChatMessage copyWith({
@@ -31,6 +29,7 @@ class ChatMessage {
     String? content,
     DateTime? createdAt,
     List<ToolCallInfo>? toolCalls,
+    List<MessageReaction>? reactions,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -38,7 +37,21 @@ class ChatMessage {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       toolCalls: toolCalls ?? this.toolCalls,
+      reactions: reactions ?? this.reactions,
     );
+  }
+
+  void addReaction(String reaction) {
+    if (reactions.any((r) => r.emoji == reaction)) {
+      final index = reactions.indexWhere((r) => r.emoji == reaction);
+      reactions[index] = reactions[index].copyWith(count: reactions[index].count + 1);
+    } else {
+      reactions.add(MessageReaction(emoji: reaction, count: 1, users: ['current_user']));
+    }
+  }
+
+  void removeReaction(MessageReaction reaction) {
+    reactions.remove(reaction);
   }
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -47,6 +60,7 @@ class ChatMessage {
       role: ChatRole.values.byName(json['role']),
       content: json['content'],
       createdAt: DateTime.parse(json['createdAt']),
+      reactions: json['reactions'] != null ? (json['reactions'] as List).map((r) => MessageReaction.fromJson(r)).toList() : [],
     );
   }
 
@@ -57,6 +71,7 @@ class ChatMessage {
       'content': content,
       'createdAt': createdAt.toIso8601String(),
       'toolCalls': toolCalls.map((toolCall) => toolCall.toJson()).toList(),
+      'reactions': reactions.map((reaction) => reaction.toJson()).toList(),
     };
   }
-} 
+}

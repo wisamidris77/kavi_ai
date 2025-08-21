@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class MessageReactions extends StatefulWidget {
   final List<MessageReaction> reactions;
   final Function(String emoji)? onReactionAdded;
-  final Function(String emoji)? onReactionRemoved;
+  final Function(MessageReaction reaction)? onReactionRemoved;
   final bool showAddButton;
   final List<String> availableEmojis;
 
@@ -29,7 +29,8 @@ class _MessageReactionsState extends State<MessageReactions> {
       return const SizedBox.shrink();
     }
 
-    return Column(
+    return Row(
+      spacing: 5,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.reactions.isNotEmpty)
@@ -62,7 +63,7 @@ class _MessageReactionsState extends State<MessageReactions> {
 
     if (existingReaction.users.contains('current_user')) {
       // Remove reaction
-      widget.onReactionRemoved?.call(emoji);
+      widget.onReactionRemoved?.call(existingReaction);
     } else {
       // Add reaction
       widget.onReactionAdded?.call(emoji);

@@ -122,31 +122,36 @@ class ChatMessageBubble extends StatelessWidget {
                         child: _MessageStatusIndicator(status: status!, errorMessage: errorMessage),
                       ),
                     // Reactions
-                    if (enableReactions)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: MessageReactions(
-                          // messageId: message.id,
-                          reactions: const [],
-                          onReactionAdded: (reaction) {
-                            // Handle reaction added
-                          },
-                          onReactionRemoved: (reaction) {
-                            // Handle reaction removed
-                          },
-                        ),
-                      ),
+                    // if (enableReactions)
+                    //   Padding(
+                    //     padding: const EdgeInsets.only(right: 4),
+                    //     child: MessageReactions(
+                    //       // messageId: message.id,
+                    //       reactions: message.reactions,
+                    //       onReactionAdded: (reaction) {
+                    //         message.addReaction(reaction);
+                    //       },
+                    //       onReactionRemoved: (reaction) {
+                    //         message.removeReaction(reaction);
+                    //         // Handle reaction removed
+                    //       },
+                    //     ),
+                    //   ),
                     // Edit button for user messages
                     if (enableEditing && message.role == ChatRole.user)
-                      IconButton(
-                        tooltip: 'Edit message',
-                        icon: const Icon(Icons.edit, size: 18),
-                        padding: const EdgeInsets.all(4),
-                        visualDensity: VisualDensity.compact,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        onPressed: () {
-                          _showEditDialog(context);
-                        },
+                      Builder(
+                        builder: (context) {
+                          return IconButton(
+                            tooltip: 'Edit message',
+                            icon: const Icon(Icons.edit, size: 18),
+                            padding: const EdgeInsets.all(4),
+                            visualDensity: VisualDensity.compact,
+                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                            onPressed: () {
+                              _showEditDialog(context);
+                            },
+                          );
+                        }
                       ),
                     IconButton(
                       tooltip: 'Copy message',
@@ -190,7 +195,7 @@ class ChatMessageBubble extends StatelessWidget {
       builder: (context) => MessageEditing(
         message: message,
         onSave: (newContent) {
-          // Handle message edit
+          // TODO: Complete editing message
           Navigator.of(context).pop();
         },
         onCancel: () {
