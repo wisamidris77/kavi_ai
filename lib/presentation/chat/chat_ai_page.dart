@@ -12,7 +12,6 @@ import '../../core/chat/mcp_ai_chat_service.dart';
 import '../settings/settings_page.dart';
 import '../../settings/controller/settings_controller.dart';
 import '../../settings/models/app_settings.dart';
-import '../../providers/base/provider_config.dart';
 import '../../mcp/controller/mcp_controller.dart';
 
 import 'widgets/enhanced_chat_input.dart';
@@ -20,9 +19,6 @@ import 'widgets/chat_messages_list.dart';
 import 'widgets/chat_sidebar.dart';
 import '../widgets/command_palette.dart';
 import '../widgets/responsive_layout.dart';
-import '../widgets/message_search.dart';
-import '../widgets/message_pinning.dart';
-import '../widgets/message_bookmarks.dart';
 import '../widgets/thread_view.dart';
 import '../chat/controller/chat_history_controller.dart';
 import '../chat/repository/chat_history_repository.dart';
@@ -32,19 +28,6 @@ import '../../core/file/file_handler_service.dart';
 
 class _OpenCommandPaletteIntent extends Intent {
   const _OpenCommandPaletteIntent();
-}
-
-// Add ThreadMessage class
-class ThreadMessage {
-  final domain_msg.ChatMessageModel message;
-  final int depth;
-  final String? parentId;
-
-  ThreadMessage({
-    required this.message,
-    required this.depth,
-    this.parentId,
-  });
 }
 
 class ChatAiPage extends StatefulWidget {
@@ -67,7 +50,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
   bool _isBusy = false;
   String? _activeMessageId;
   List<FileInfo> _attachedFiles = [];
-  
+
   // New state for features
   bool _showSearch = false;
   bool _showPinned = false;
@@ -468,9 +451,9 @@ class _ChatAiPageState extends State<ChatAiPage> {
         child: Focus(
           autofocus: true,
           child: ResponsiveLayout(
-            mobileWidget: _buildMobileLayout(assistantLabel, colors),
-            tabletWidget: _buildTabletLayout(assistantLabel, colors),
-            desktopWidget: _buildDesktopLayout(assistantLabel, colors),
+            mobile: _buildMobileLayout(assistantLabel, colors),
+            tablet: _buildTabletLayout(assistantLabel, colors),
+            desktop: _buildDesktopLayout(assistantLabel, colors),
           ),
         ),
       ),
@@ -497,15 +480,10 @@ class _ChatAiPageState extends State<ChatAiPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('KAVI', style: TextStyle(fontWeight: FontWeight.bold)),
-                        if (assistantLabel.isNotEmpty)
-                          Text(
-                            assistantLabel,
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(Icons.expand_more, size: 18),
-                        ],
-                      ),
+                        if (assistantLabel.isNotEmpty) Text(assistantLabel, style: Theme.of(context).textTheme.labelSmall),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.expand_more, size: 18),
+                      ],
                     ),
                     const SizedBox(width: 6),
                     const Icon(Icons.expand_more, size: 18),
@@ -533,11 +511,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
 
   Widget _buildTabletLayout(String assistantLabel, ColorScheme colors) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: 20,
-        title: _buildAppBarTitle(assistantLabel),
-      ),
+      appBar: AppBar(automaticallyImplyLeading: false, titleSpacing: 20, title: _buildAppBarTitle(assistantLabel)),
       body: Row(
         children: <Widget>[
           ChatSidebar(
@@ -622,16 +596,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
             tooltip: _showBookmarks ? 'Hide bookmarks' : 'Show bookmarks',
           ),
           const VerticalDivider(width: 1),
-          IconButton(
-            icon: const Icon(Icons.tune),
-            onPressed: _openSettings,
-            tooltip: 'Settings',
-          ),
-          IconButton(
-            icon: const Icon(Icons.build_outlined),
-            onPressed: () => Navigator.pushNamed(context, '/mcp-tools'),
-            tooltip: 'MCP Tools',
-          ),
+          IconButton(icon: const Icon(Icons.tune), onPressed: _openSettings, tooltip: 'Settings'),
+          IconButton(icon: const Icon(Icons.build_outlined), onPressed: () => Navigator.pushNamed(context, '/mcp-tools'), tooltip: 'MCP Tools'),
           const SizedBox(width: 8),
         ],
       ),
@@ -646,11 +612,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
             onSelectChat: _selectChat,
           ),
           VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
-          Expanded(
-            child: _showThread 
-              ? _buildThreadLayout(colors)
-              : _buildRegularChatLayout(assistantLabel, colors),
-          ),
+          Expanded(child: _showThread ? _buildThreadLayout(colors) : _buildChatContent(assistantLabel)),
           const SizedBox(width: 8),
         ],
       ),
@@ -674,11 +636,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('KAVI', style: TextStyle(fontWeight: FontWeight.bold)),
-                    if (assistantLabel.isNotEmpty)
-                      Text(
-                        assistantLabel,
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
+                    if (assistantLabel.isNotEmpty) Text(assistantLabel, style: Theme.of(context).textTheme.labelSmall),
                   ],
                 ),
                 const SizedBox(width: 6),
@@ -698,14 +656,14 @@ class _ChatAiPageState extends State<ChatAiPage> {
           child: _messages.isEmpty
               ? const _EmptyState()
               : ChatMessagesList(
-                messages: _messages, 
-                controller: _scrollController, 
-                assistantLabel: assistantLabel, 
-                onRegenerateLast: _regenerateLast, 
-                onCopyMessage: (_) {},
-                isBusy: _isBusy,
-                showTypingIndicator: true,
-              ),
+                  messages: _messages,
+                  controller: _scrollController,
+                  assistantLabel: assistantLabel,
+                  onRegenerateLast: _regenerateLast,
+                  onCopyMessage: (_) {},
+                  isBusy: _isBusy,
+                  showTypingIndicator: true,
+                ),
         ),
         const Divider(height: 1),
         EnhancedChatInput(
@@ -714,8 +672,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
           onStop: _stop,
           onFilesSelected: _onFilesSelected,
           onClearFiles: _onClearFiles,
-          attachedFiles: _attachedFiles,
-          onRemoveFile: _removeFile,
+          // attachedFiles: _attachedFiles.map((e) => e.path).toList(),
+          // onRemoveFile: _removeFile,
         ),
       ],
     );
@@ -868,15 +826,9 @@ class _ChatAiPageState extends State<ChatAiPage> {
     return Row(
       children: [
         // Main chat on the left
-        Expanded(
-          flex: 2,
-          child: _buildChatContent(_getAssistantLabel()),
-        ),
+        Expanded(flex: 2, child: _buildChatContent(_getAssistantLabel())),
         // Thread view on the right
-        Container(
-          width: 1,
-          color: colors.outlineVariant,
-        ),
+        Container(width: 1, color: colors.outlineVariant),
         Expanded(
           flex: 1,
           child: Container(
@@ -887,30 +839,21 @@ class _ChatAiPageState extends State<ChatAiPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: colors.surface,
-                    border: Border(
-                      bottom: BorderSide(color: colors.outlineVariant),
-                    ),
+                    border: Border(bottom: BorderSide(color: colors.outlineVariant)),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.account_tree, color: colors.primary),
                       const SizedBox(width: 8),
-                      Text(
-                        'Thread',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      Text('Thread', style: Theme.of(context).textTheme.titleMedium),
                       const Spacer(),
-                      if (_threadParentMessage != null)
-                        TextButton(
-                          onPressed: _clearThread,
-                          child: const Text('Clear'),
-                        ),
+                      if (_threadParentMessage != null) TextButton(onPressed: _clearThread, child: const Text('Clear')),
                     ],
                   ),
                 ),
                 Expanded(
                   child: ThreadView(
-                    threadMessages: _threadMessages,
+                    threadMessages: _threadMessages.toList(),
                     onMessageSelected: (message) {
                       // Handle message selection in thread
                       _startThreadFromMessage(
@@ -924,7 +867,14 @@ class _ChatAiPageState extends State<ChatAiPage> {
                     },
                     onReplyToMessage: (message) {
                       // Handle reply to message in thread
-                      _replyInThread(message);
+                      _replyInThread(
+                        ChatMessage(
+                          id: message.id,
+                          role: _mapDomainRoleToCore(message.role),
+                          content: message.content,
+                          createdAt: message.createdAt ?? DateTime.now(),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -977,36 +927,36 @@ class _ChatAiPageState extends State<ChatAiPage> {
     _activeMessageId = null;
     _subscription = _chatService
         .sendMessage(history: List<ChatMessage>.from(_messages), prompt: message.content)
-        .listen((ChatMessage assistantUpdate) async {
-      _activeMessageId = assistantUpdate.id;
-      final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
-      setState(() {
-        if (existingIndex >= 0) {
-          _messages[existingIndex] = assistantUpdate;
-        } else {
-          _messages.add(assistantUpdate);
-        }
-      });
-      await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
-      _scrollToBottomDeferred();
-    }, onDone: () {
-      setState(() {
-        _isBusy = false;
-        _activeMessageId = null;
-      });
-    }, onError: (_) {
-      setState(() {
-        _isBusy = false;
-        _activeMessageId = null;
-      });
-    });
+        .listen(
+          (ChatMessage assistantUpdate) async {
+            _activeMessageId = assistantUpdate.id;
+            final int existingIndex = _messages.lastIndexWhere((ChatMessage m) => m.id == assistantUpdate.id);
+            setState(() {
+              if (existingIndex >= 0) {
+                _messages[existingIndex] = assistantUpdate;
+              } else {
+                _messages.add(assistantUpdate);
+              }
+            });
+            await _history.upsertAssistantMessage(id: assistantUpdate.id, content: assistantUpdate.content);
+            _scrollToBottomDeferred();
+          },
+          onDone: () {
+            setState(() {
+              _isBusy = false;
+              _activeMessageId = null;
+            });
+          },
+          onError: (_) {
+            setState(() {
+              _isBusy = false;
+              _activeMessageId = null;
+            });
+          },
+        );
 
     setState(() {
-      _threadMessages.add(ThreadMessage(
-        message: _mapCoreToDomain(newMessage),
-        depth: 1,
-        parentId: newMessage.id,
-      ));
+      _threadMessages.add(ThreadMessage(message: _mapCoreToDomain(newMessage), depth: 1, parentMessageId: newMessage.id));
     });
   }
 
@@ -1033,12 +983,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
         role = domain_role.ChatRole.assistant;
         break;
     }
-    return domain_msg.ChatMessageModel(
-      id: m.id,
-      role: role,
-      content: m.content,
-      createdAt: m.createdAt,
-    );
+    return domain_msg.ChatMessageModel(id: m.id, role: role, content: m.content, createdAt: m.createdAt);
   }
 
   ChatRole _mapDomainRoleToCore(domain_role.ChatRole r) {
@@ -1053,7 +998,6 @@ class _ChatAiPageState extends State<ChatAiPage> {
         return ChatRole.assistant;
     }
   }
-
 }
 
 class _ModelSelectionResult {

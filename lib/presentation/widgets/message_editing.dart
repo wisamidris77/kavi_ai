@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kavi/core/chat/chat_message.dart';
 import '../../domain/models/chat_message_model.dart' as domain_msg;
 
 class MessageEditing extends StatefulWidget {
-  final domain_msg.ChatMessageModel message;
+  final ChatMessage message;
   final Function(String newContent)? onSave;
   final VoidCallback? onCancel;
   final bool isEditing;
