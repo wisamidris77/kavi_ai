@@ -448,6 +448,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.9.5"
+  langchain:
+    dependency: "direct main"
+    description:
+      name: langchain
+      sha256: "85ecefa1537f9718dab109d437a7421bf084bb0b1c558ed38091127855c97725"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.9"
+  langchain_core:
+    dependency: transitive
+    description:
+      name: langchain_core
+      sha256: "4499c01dcf49bb046376661ab447d660c4e36671d52e9cabc8c7225d373643d9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.9"
+  langchain_openai:
+    dependency: "direct main"
+    description:
+      name: langchain_openai
+      sha256: bacffd123f5d7785b6f266c514c798f6c13b607d91bf34432ad6e027b6472b8f
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.6"
+  langchain_tiktoken:
+    dependency: transitive
+    description:
+      name: langchain_tiktoken
+      sha256: c1804f4b3e56574ca67e562305d9f11e3eabe3c8aa87fea8635992f7efc66674
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   leak_tracker:
     dependency: transitive
     description:
@@ -480,6 +512,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
+  llm_dart:
+    dependency: "direct main"
+    description:
+      name: llm_dart
+      sha256: e66d908e9dfbf1a4d6fdb3fc02e0ddc9662ae7db70352c60f9d9fed6a1c14cce
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.0"
   logging:
     dependency: transitive
     description:
@@ -544,6 +584,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.4"
+  openai_dart:
+    dependency: transitive
+    description:
+      name: openai_dart
+      sha256: fcfedc6e01b9d99f58ca11bb0d4245890f488427b930bd4e7472a78afa344011
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.4"
   package_config:
     dependency: transitive
     description:
@@ -648,6 +696,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  rxdart:
+    dependency: transitive
+    description:
+      name: rxdart
+      sha256: "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.28.0"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -749,6 +805,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.1"
+  sprintf:
+    dependency: transitive
+    description:
+      name: sprintf
+      sha256: "1fc9ffe69d4df602376b52949af107d8f5703b77cda567c4d7d86a0693120f23"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.0"
   stack_trace:
     dependency: transitive
     description:
@@ -821,6 +885,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  uuid:
+    dependency: transitive
+    description:
+      name: uuid
+      sha256: a5be9ef6618a7ac1e964353ef476418026db906c4facdedaa299b7a2e71690ff
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.5.1"
   vector_graphics:
     dependency: transitive
     description:

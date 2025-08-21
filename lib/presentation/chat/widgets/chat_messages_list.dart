@@ -9,6 +9,8 @@ class ChatMessagesList extends StatelessWidget {
   final String? assistantLabel;
   final VoidCallback? onRegenerateLast;
   final void Function(ChatMessage message)? onCopyMessage;
+  final void Function(String messageId, String newContent)? onEditMessage;
+  final void Function(String messageId, String emoji)? onReactionToggled;
   final bool isBusy;
   final bool showTypingIndicator;
   final bool enableGrouping;
@@ -20,6 +22,8 @@ class ChatMessagesList extends StatelessWidget {
     this.assistantLabel, 
     this.onRegenerateLast, 
     this.onCopyMessage,
+    this.onEditMessage,
+    this.onReactionToggled,
     this.isBusy = false,
     this.showTypingIndicator = false,
     this.enableGrouping = true,
@@ -49,6 +53,8 @@ class ChatMessagesList extends StatelessWidget {
             showRegenerate: isLastAssistant && !isBusy,
             onRegenerate: isLastAssistant && !isBusy ? onRegenerateLast : null,
             onCopy: onCopyMessage,
+            onEdit: onEditMessage,
+            onReactionToggled: onReactionToggled != null ? (messageId, emoji) => onReactionToggled!(message.id, emoji) : null,
           ));
         } else {
           // Multiple messages from same sender, group them
@@ -64,6 +70,8 @@ class ChatMessagesList extends StatelessWidget {
                   group.first.role == ChatRole.assistant && 
                   !isBusy ? onRegenerateLast : null,
               onCopy: onCopyMessage,
+              onEdit: onEditMessage,
+              onReactionToggled: onReactionToggled != null ? (messageId, emoji) => onReactionToggled!(message.id, emoji) : null,
             ),
           ));
         }
@@ -84,6 +92,8 @@ class ChatMessagesList extends StatelessWidget {
           showRegenerate: isLastAssistant && !isBusy,
           onRegenerate: isLastAssistant && !isBusy ? onRegenerateLast : null,
           onCopy: onCopyMessage,
+          onEdit: onEditMessage,
+          onReactionToggled: onReactionToggled != null ? (messageId, emoji) => onReactionToggled!(message.id, emoji) : null,
         ));
         
         if (i < messages.length - 1) {

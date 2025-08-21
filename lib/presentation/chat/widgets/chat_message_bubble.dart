@@ -17,6 +17,8 @@ class ChatMessageBubble extends StatelessWidget {
   final bool showRegenerate;
   final VoidCallback? onRegenerate;
   final void Function(ChatMessage message)? onCopy;
+  final void Function(String messageId, String newContent)? onEdit;
+  final void Function(String messageId, String emoji)? onReactionToggled;
   final MessageStatus? status;
   final String? errorMessage;
   final int? tokenCount;
@@ -31,6 +33,8 @@ class ChatMessageBubble extends StatelessWidget {
     this.showRegenerate = false,
     this.onRegenerate,
     this.onCopy,
+    this.onEdit,
+    this.onReactionToggled,
     this.status,
     this.errorMessage,
     this.tokenCount,
@@ -122,21 +126,17 @@ class ChatMessageBubble extends StatelessWidget {
                         child: _MessageStatusIndicator(status: status!, errorMessage: errorMessage),
                       ),
                     // Reactions
-                    // if (enableReactions)
-                    //   Padding(
-                    //     padding: const EdgeInsets.only(right: 4),
-                    //     child: MessageReactions(
-                    //       // messageId: message.id,
-                    //       reactions: message.reactions,
-                    //       onReactionAdded: (reaction) {
-                    //         message.addReaction(reaction);
-                    //       },
-                    //       onReactionRemoved: (reaction) {
-                    //         message.removeReaction(reaction);
-                    //         // Handle reaction removed
-                    //       },
-                    //     ),
-                    //   ),
+                    if (enableReactions)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: MessageReactions(
+                          // messageId: message.id,
+                          reactions: message.reactions,
+                          onReactionToggled: onReactionToggled != null 
+                              ? (emoji) => onReactionToggled!(message.id, emoji) 
+                              : null,
+                        ),
+                      ),
                     // Edit button for user messages
                     if (enableEditing && message.role == ChatRole.user)
                       Builder(
@@ -195,7 +195,9 @@ class ChatMessageBubble extends StatelessWidget {
       builder: (context) => MessageEditing(
         message: message,
         onSave: (newContent) {
-          // TODO: Complete editing message
+          if (onEdit != null) {
+            onEdit!(message.id, newContent);
+          }
           Navigator.of(context).pop();
         },
         onCancel: () {

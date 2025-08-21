@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 
 class MessageReactions extends StatefulWidget {
   final List<MessageReaction> reactions;
-  final Function(String emoji)? onReactionAdded;
-  final Function(MessageReaction reaction)? onReactionRemoved;
+  final Function(String emoji)? onReactionToggled;
   final bool showAddButton;
   final List<String> availableEmojis;
 
   const MessageReactions({
     super.key,
     required this.reactions,
-    this.onReactionAdded,
-    this.onReactionRemoved,
+    this.onReactionToggled,
     this.showAddButton = true,
     this.availableEmojis = const ['👍', '❤️', '😂', '😮', '😢', '😡', '👏', '🙏'],
   });
@@ -56,22 +54,13 @@ class _MessageReactionsState extends State<MessageReactions> {
   }
 
   void _handleReactionTap(String emoji) {
-    final existingReaction = widget.reactions.firstWhere(
-      (r) => r.emoji == emoji,
-      orElse: () => MessageReaction(emoji: emoji, count: 0, users: []),
-    );
-
-    if (existingReaction.users.contains('current_user')) {
-      // Remove reaction
-      widget.onReactionRemoved?.call(existingReaction);
-    } else {
-      // Add reaction
-      widget.onReactionAdded?.call(emoji);
-    }
+    // Toggle reaction - the controller will handle adding/removing
+    widget.onReactionToggled?.call(emoji);
   }
 
   void _handleEmojiSelected(String emoji) {
-    widget.onReactionAdded?.call(emoji);
+    // Add new reaction
+    widget.onReactionToggled?.call(emoji);
     setState(() {
       _showEmojiPicker = false;
     });

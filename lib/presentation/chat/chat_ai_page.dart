@@ -659,6 +659,8 @@ class _ChatAiPageState extends State<ChatAiPage> {
                   assistantLabel: assistantLabel,
                   onRegenerateLast: _regenerateLast,
                   onCopyMessage: (_) {},
+                  onEditMessage: _editMessage,
+                  onReactionToggled: _toggleReaction,
                   isBusy: _isBusy,
                   showTypingIndicator: true,
                 ),
@@ -994,6 +996,69 @@ class _ChatAiPageState extends State<ChatAiPage> {
         return ChatRole.system;
       default:
         return ChatRole.assistant;
+    }
+  }
+
+  Future<void> _editMessage(String messageId, String newContent) async {
+    // Update the message in the history controller
+    await _history.editMessage(messageId, newContent);
+    
+    // Update the local messages list to reflect the change
+    final int messageIndex = _messages.indexWhere((m) => m.id == messageId);
+    if (messageIndex != -1) {
+      setState(() {
+        _messages[messageIndex] = _messages[messageIndex].copyWith(
+          content: newContent,
+          createdAt: DateTime.now(),
+        );
+      });
+      
+      // If this is a user message, regenerate the AI response
+      if (_messages[messageIndex].role == ChatRole.user) {
+        // Remove all assistant messages that came after this user message
+        final List<ChatMessage> updatedMessages = [];
+        for (int i = 0; i <= messageIndex; i++) {
+          updatedMessages.add(_messages[i]);
+        }
+        
+        setState(() {
+          _messages.clear();
+          _messages.addAll(updatedMessages);
+        });
+        
+        // Trigger AI response to the edited message
+        await _send(newContent);
+      }
+    }
+  }
+
+  Future<void> _toggleReaction(String messageId, String emoji) async {
+    // Update the message in the history controller
+    await _history.addReactionToMessage(messageId, emoji);
+    
+    // Update the local messages list to reflect the change
+    final int messageIndex = _messages.indexWhere((m) => m.id == messageId);
+    if (messageIndex != -1) {
+      final updatedMessage = _history.activeChat?.messages.firstWhere(
+        (m) => m.id == messageId,
+        orElse: () => _messages[messageIndex],
+      );
+      
+      if (updatedMessage != null) {
+        setState(() {
+          _messages[messageIndex] = _mapDomainToCore(updatedMessage);
+        });
+        
+        // Show visual feedback
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Toggled $emoji reaction'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+      }
     }
   }
 }

@@ -93,10 +93,11 @@ class _McpToolsPageState extends State<McpToolsPage> with SingleTickerProviderSt
     return 'Other';
   }
 
-  List<Tool> _getFilteredTools() {
-    final tools = mcpService.availableTools.values.toList();
+  List<McpTool> _getFilteredTools() {
+    final tools = mcpService.availableTools.entries.toList();
 
-    return tools.where((tool) {
+    return tools.map((tool) => McpTool(key: tool.key, tool: tool.value)).where((entry) {
+      var tool = entry.tool;
       // Filter by search query
       final matchesSearch =
           _searchQuery.isEmpty ||
@@ -262,12 +263,12 @@ class _McpToolsPageState extends State<McpToolsPage> with SingleTickerProviderSt
     );
   }
 
-  String _getToolKey(Tool tool) {
+  String _getToolKey(McpTool tool) {
     // Generate a unique key for the tool
-    return '${tool.name}_${tool.description.hashCode}';
+    return '${tool.tool.name}_${tool.tool.description.hashCode}';
   }
 
-  Future<void> _toggleFavorite(Tool tool) async {
+  Future<void> _toggleFavorite(McpTool tool) async {
     final toolKey = _getToolKey(tool);
     final isFavorite = _favorites.contains(toolKey);
 
@@ -312,7 +313,7 @@ class _McpToolsPageState extends State<McpToolsPage> with SingleTickerProviderSt
     );
   }
 
-  void _showToolExecutionDialog(Tool tool) {
+  void _showToolExecutionDialog(McpTool tool) {
     showDialog(
       context: context,
       builder: (context) => _ToolExecutionDialog(
@@ -329,7 +330,7 @@ class _McpToolsPageState extends State<McpToolsPage> with SingleTickerProviderSt
 }
 
 class _ToolCard extends StatelessWidget {
-  final Tool tool;
+  final McpTool tool;
   final bool isFavorite;
   final VoidCallback onFavorite;
   final VoidCallback onExecute;
@@ -351,7 +352,7 @@ class _ToolCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(tool.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  child: Text(tool.tool.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 ),
                 IconButton(
                   icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : null),
@@ -361,21 +362,21 @@ class _ToolCard extends StatelessWidget {
                 IconButton(icon: const Icon(Icons.play_arrow), onPressed: onExecute, tooltip: 'Execute tool'),
               ],
             ),
-            if (tool.description?.isNotEmpty ?? false) ...[
+            if (tool.tool.description?.isNotEmpty ?? false) ...[
               const SizedBox(height: 8),
-              Text(tool.description!, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
+              Text(tool.tool.description!, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
             ],
             ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: colorScheme.primaryContainer, borderRadius: BorderRadius.circular(4)),
-              child: Text(
-                '${tool.inputSchema.properties?.length ?? 0} parameters',
-                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onPrimaryContainer),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: colorScheme.primaryContainer, borderRadius: BorderRadius.circular(4)),
+                child: Text(
+                  '${tool.tool.inputSchema.properties?.length ?? 0} parameters',
+                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onPrimaryContainer),
+                ),
               ),
-            ),
-          ],
+            ],
           ],
         ),
       ),
@@ -384,7 +385,7 @@ class _ToolCard extends StatelessWidget {
 }
 
 class _ToolExecutionDialog extends StatefulWidget {
-  final Tool tool;
+  final McpTool tool;
   final McpController mcpController;
   final Future<void> Function(ToolExecutionRecord) onToolExecuted;
   final McpToolsStorage storage;
@@ -403,7 +404,7 @@ class _ToolExecutionDialogState extends State<_ToolExecutionDialog> {
   @override
   void initState() {
     super.initState();
-    for (final MapEntry<String, Schema> entry in widget.tool.inputSchema.properties?.entries ?? []) {
+    for (final MapEntry<String, Schema> entry in widget.tool.tool.inputSchema.properties?.entries ?? []) {
       _controllers[entry.key] = TextEditingController();
     }
   }
@@ -435,11 +436,11 @@ class _ToolExecutionDialogState extends State<_ToolExecutionDialog> {
 
       // Execute the tool through MCP service
       final mcpService = widget.mcpController.mcpService;
-      final result = await mcpService.executeToolCall(toolKey: widget.tool.name, arguments: arguments.isNotEmpty ? arguments : null);
+      final result = await mcpService.executeToolCall(toolKey: widget.tool.key, arguments: arguments.isNotEmpty ? arguments : null);
 
       final record = ToolExecutionRecord(
-        toolKey: widget.tool.name,
-        toolName: widget.tool.name,
+        toolKey: widget.tool.key,
+        toolName: widget.tool.tool.name,
         timestamp: DateTime.now(),
         arguments: arguments.isNotEmpty ? arguments : null,
         result: result.$1.content,
@@ -455,8 +456,8 @@ class _ToolExecutionDialogState extends State<_ToolExecutionDialog> {
       });
     } catch (e) {
       final record = ToolExecutionRecord(
-        toolKey: widget.tool.name,
-        toolName: widget.tool.name,
+        toolKey: widget.tool.key,
+        toolName: widget.tool.tool.name,
         timestamp: DateTime.now(),
         arguments: _controllers.map((k, v) => MapEntry(k, v.text)),
         error: e.toString(),
@@ -478,21 +479,21 @@ class _ToolExecutionDialogState extends State<_ToolExecutionDialog> {
     final theme = Theme.of(context);
 
     return AlertDialog(
-      title: Text('Execute: ${widget.tool.name}'),
+      title: Text('Execute: ${widget.tool.tool.name}'),
       content: SizedBox(
         width: 400,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.tool.description?.isNotEmpty ?? false) ...[
-              Text(widget.tool.description!, style: theme.textTheme.bodyMedium),
+            if (widget.tool.tool.description?.isNotEmpty ?? false) ...[
+              Text(widget.tool.tool.description!, style: theme.textTheme.bodyMedium),
               const SizedBox(height: 16),
             ],
             ...[
               Text('Parameters', style: theme.textTheme.titleSmall),
               const SizedBox(height: 8),
-              ...widget.tool.inputSchema.properties?.entries.map((entry) {
+              ...widget.tool.tool.inputSchema.properties?.entries.map((entry) {
                     final controller = _controllers[entry.key]!;
                     final property = entry.value;
 
@@ -617,4 +618,10 @@ class _HistoryCard extends StatelessWidget {
       return '${duration.inMinutes}m ${duration.inSeconds % 60}s';
     }
   }
+}
+
+class McpTool {
+  final String key;
+  final Tool tool;
+  McpTool({required this.key, required this.tool});
 }

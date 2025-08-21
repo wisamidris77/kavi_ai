@@ -32,12 +32,15 @@ dependencies:
   meta: ^1.16.0
   # OpenAI SDK for Dart (unofficial)
   dart_openai: ^5.1.0
+  langchain:
+  langchain_openai:
   # HTTP for manual providers if needed
   http: ^1.2.2
   shared_preferences: ^2.5.3
   flutter_markdown: ^0.7.7+1
   dart_mcp: ^0.3.3
   file_picker: ^10.3.1
+  llm_dart:
   gpt_markdown: ^1.1.2
   # Ollama client for Dart
   ollama_dart: ^0.2.3
