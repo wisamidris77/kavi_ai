@@ -11,11 +11,11 @@ class ChatSidebar extends StatefulWidget {
   final VoidCallback? onDeleteChat;
 
   const ChatSidebar({
-    super.key, 
-    required this.onNewChat, 
-    required this.onOpenSettings, 
-    List<ChatModel>? chats, 
-    this.activeChatId, 
+    super.key,
+    required this.onNewChat,
+    required this.onOpenSettings,
+    List<ChatModel>? chats,
+    this.activeChatId,
     this.onSelectChat,
     this.onDeleteChat,
   }) : chats = chats ?? const <ChatModel>[];
@@ -56,10 +56,7 @@ class _ChatSidebarState extends State<ChatSidebar> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    colors.primaryContainer.withOpacity(0.3),
-                    colors.secondaryContainer.withOpacity(0.2),
-                  ],
+                  colors: [colors.primaryContainer.withOpacity(0.3), colors.secondaryContainer.withOpacity(0.2)],
                 ),
               ),
               child: Column(
@@ -67,11 +64,7 @@ class _ChatSidebarState extends State<ChatSidebar> {
                   Row(
                     children: [
                       Expanded(
-                        child: FilledButton.tonalIcon(
-                          onPressed: widget.onNewChat,
-                          icon: const Icon(Icons.add),
-                          label: const Text('New chat'),
-                        ),
+                        child: FilledButton.tonalIcon(onPressed: widget.onNewChat, icon: const Icon(Icons.add), label: const Text('New chat')),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
@@ -94,10 +87,7 @@ class _ChatSidebarState extends State<ChatSidebar> {
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: colors.surface,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       ),
                       onChanged: (value) {
@@ -121,24 +111,16 @@ class _ChatSidebarState extends State<ChatSidebar> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Material(
-                      color: selected 
-                        ? colors.primaryContainer.withOpacity(0.3)
-                        : Colors.transparent,
+                      color: selected ? colors.primaryContainer.withOpacity(0.3) : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(8),
-                        onTap: widget.onSelectChat != null 
-                          ? () => widget.onSelectChat!(chat.id) 
-                          : null,
+                        onTap: widget.onSelectChat != null ? () => widget.onSelectChat!(chat.id) : null,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           child: Row(
                             children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                size: 20,
-                                color: selected ? colors.primary : colors.onSurfaceVariant,
-                              ),
+                              Icon(Icons.chat_bubble_outline, size: 20, color: selected ? colors.primary : colors.onSurfaceVariant),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
@@ -156,19 +138,35 @@ class _ChatSidebarState extends State<ChatSidebar> {
                                     if (chat.messages.isNotEmpty)
                                       Text(
                                         '${chat.messages.length} messages',
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: colors.onSurfaceVariant,
-                                        ),
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
                                       ),
                                   ],
                                 ),
                               ),
-                              if (selected)
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 18),
-                                  onPressed: widget.onDeleteChat,
-                                  tooltip: 'Delete chat',
-                                ),
+
+                              PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert, size: 18),
+                                tooltip: 'Chat options',
+                                itemBuilder: (BuildContext context) => [
+                                  PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.delete_outline, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Delete chat'),
+                                      ],
+                                    ),
+                                  ),
+                                  // TODO: Edit chat name
+                                  // TODO: Bookmark chat
+                                ],
+                                onSelected: (String value) {
+                                  if (value == 'delete' && widget.onDeleteChat != null) {
+                                    widget.onDeleteChat!();
+                                  }
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -190,9 +188,7 @@ class _ChatSidebarState extends State<ChatSidebar> {
                   children: <Widget>[
                     Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [colors.primary, colors.secondary],
-                        ),
+                        gradient: LinearGradient(colors: [colors.primary, colors.secondary]),
                         shape: BoxShape.circle,
                       ),
                       child: const CircleAvatar(
@@ -210,11 +206,7 @@ class _ChatSidebarState extends State<ChatSidebar> {
                         ],
                       ),
                     ),
-                    IconButton(
-                      tooltip: 'Settings',
-                      onPressed: widget.onOpenSettings,
-                      icon: const Icon(Icons.settings_outlined),
-                    ),
+                    IconButton(tooltip: 'Settings', onPressed: widget.onOpenSettings, icon: const Icon(Icons.settings_outlined)),
                   ],
                 ),
               ),
@@ -224,4 +216,4 @@ class _ChatSidebarState extends State<ChatSidebar> {
       ),
     );
   }
-} 
+}
