@@ -202,7 +202,7 @@ class _ChatSidebarState extends State<ChatSidebar> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text('You', style: Theme.of(context).textTheme.bodyLarge),
-                          Text('Free plan', style: Theme.of(context).textTheme.bodySmall),
+                          Text('Open source', style: Theme.of(context).textTheme.bodySmall),
                         ],
                       ),
                     ),
