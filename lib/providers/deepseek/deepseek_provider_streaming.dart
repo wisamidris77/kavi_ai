@@ -4,12 +4,11 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../base/ai_provider.dart';
-import '../base/provider_config.dart';
 
 /// Alternative DeepSeek provider with full streaming support
 /// Use this if you want to try true SSE streaming
 class DeepSeekStreamingProvider extends AiProvider {
-  DeepSeekStreamingProvider(AiProviderConfig config)
+  DeepSeekStreamingProvider(super.config)
       : _http = Dio(BaseOptions(
           connectTimeout: config.timeout,
           receiveTimeout: const Duration(minutes: 5), // Longer timeout for streaming
@@ -17,8 +16,7 @@ class DeepSeekStreamingProvider extends AiProvider {
           headers: {
             'User-Agent': 'Kavi-AI/1.0',
           },
-        )),
-        super(config);
+        ));
 
   final Dio _http;
 

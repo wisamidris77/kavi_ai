@@ -3,10 +3,8 @@ import 'presentation/presentation.dart';
 import 'settings/controller/settings_controller.dart';
 import 'settings/repository/settings_repository.dart';
 import 'presentation/onboarding/onboarding_page.dart';
-import 'presentation/settings/settings_page.dart';
 import 'presentation/settings/mcp_settings_page.dart';
 import 'mcp/controller/mcp_controller.dart';
-import 'presentation/splash/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());

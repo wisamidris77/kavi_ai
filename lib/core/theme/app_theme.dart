@@ -53,7 +53,7 @@ class AppTheme {
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surfaceVariant,
+        fillColor: colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: colorScheme.outline),
@@ -111,7 +111,7 @@ class AppTheme {
 
       // Chip Theme
       chipTheme: ChipThemeData(
-        backgroundColor: colorScheme.surfaceVariant,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         selectedColor: colorScheme.primaryContainer,
         labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
         shape: RoundedRectangleBorder(
@@ -168,8 +168,8 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colorScheme.surface,
         indicatorColor: colorScheme.primaryContainer,
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return TextStyle(
               color: colorScheme.onPrimaryContainer,
               fontWeight: FontWeight.w600,
@@ -177,8 +177,8 @@ class AppTheme {
           }
           return TextStyle(color: colorScheme.onSurfaceVariant);
         }),
-        iconTheme: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return IconThemeData(color: colorScheme.onPrimaryContainer);
           }
           return IconThemeData(color: colorScheme.onSurfaceVariant);
@@ -226,7 +226,7 @@ class AppTheme {
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surfaceVariant,
+        fillColor: colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: colorScheme.outline),
@@ -284,7 +284,7 @@ class AppTheme {
 
       // Chip Theme
       chipTheme: ChipThemeData(
-        backgroundColor: colorScheme.surfaceVariant,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         selectedColor: colorScheme.primaryContainer,
         labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
         shape: RoundedRectangleBorder(
@@ -341,8 +341,8 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colorScheme.surface,
         indicatorColor: colorScheme.primaryContainer,
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return TextStyle(
               color: colorScheme.onPrimaryContainer,
               fontWeight: FontWeight.w600,
@@ -350,8 +350,8 @@ class AppTheme {
           }
           return TextStyle(color: colorScheme.onSurfaceVariant);
         }),
-        iconTheme: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return IconThemeData(color: colorScheme.onPrimaryContainer);
           }
           return IconThemeData(color: colorScheme.onSurfaceVariant);

@@ -2,13 +2,12 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../base/ai_provider.dart';
-import '../base/provider_config.dart';
 
 class GeminiProvider extends AiProvider {
   static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
   static const String _defaultModel = 'gemini-1.5-flash';
 
-  GeminiProvider(AiProviderConfig config) : super(config);
+  GeminiProvider(super.config);
 
   @override
   String get name => 'Google Gemini';

@@ -2,13 +2,12 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../base/ai_provider.dart';
-import '../base/provider_config.dart';
 
 class CohereProvider extends AiProvider {
   static const String _baseUrl = 'https://api.cohere.ai/v1';
   static const String _defaultModel = 'command-r-plus';
 
-  CohereProvider(AiProviderConfig config) : super(config);
+  CohereProvider(super.config);
 
   @override
   String get name => 'Cohere';

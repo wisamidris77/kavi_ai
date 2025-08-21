@@ -128,8 +128,7 @@ class AppSettings {
 			case ThemeMode.dark:
 				return ThemeModeValues.dark;
 			case ThemeMode.system:
-			default:
-				return ThemeModeValues.system;
+			return ThemeModeValues.system;
 		}
 	}
 

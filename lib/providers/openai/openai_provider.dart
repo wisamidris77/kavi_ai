@@ -4,15 +4,13 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../base/ai_provider.dart';
-import '../base/provider_config.dart';
 
 class OpenAiProvider extends AiProvider {
-  OpenAiProvider(AiProviderConfig config)
+  OpenAiProvider(super.config)
       : _http = Dio(BaseOptions(
           connectTimeout: config.timeout,
           receiveTimeout: config.timeout,
-        )),
-        super(config);
+        ));
 
   final Dio _http;
 

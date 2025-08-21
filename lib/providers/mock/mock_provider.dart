@@ -2,12 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import '../base/ai_provider.dart';
-import '../base/provider_config.dart';
 
 class MockProvider extends AiProvider {
-  MockProvider(AiProviderConfig config)
-      : _rand = Random(),
-        super(config);
+  MockProvider(super.config)
+      : _rand = Random();
 
   final Random _rand;
 
@@ -92,6 +90,6 @@ class MockProvider extends AiProvider {
       return "${randomParagraph()} ${randomParagraph()}";
     }
 
-    return "${randomParagraph()}";
+    return randomParagraph();
   }
 } 

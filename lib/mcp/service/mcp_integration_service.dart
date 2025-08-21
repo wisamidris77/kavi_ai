@@ -7,7 +7,6 @@ import 'package:kavi/core/chat/chat_message.dart';
 import '../client/mcp_client_service.dart';
 import '../models/mcp_server_config.dart';
 import '../models/tool_call_info.dart';
-import '../../domain/models/chat_message_model.dart';
 
 /// Service that integrates MCP tools with AI providers
 class McpIntegrationService {
@@ -130,10 +129,8 @@ class McpIntegrationService {
         prompt.writeln('  Description: ${tool.description}');
       }
       prompt.writeln('  Tool Key: $toolKey');
-      if (tool.inputSchema != null) {
-        prompt.writeln('  Parameters: ${_client.getToolDescription(toolKey)}');
-      }
-      
+      prompt.writeln('  Parameters: ${_client.getToolDescription(toolKey)}');
+          
       // Add specific examples for common tools
       if (tool.name == 'listFiles' || toolKey.contains('listFiles')) {
         examples.add('''
@@ -265,7 +262,7 @@ ARGUMENTS:
       } else {
         // Try to find a partial match in case of truncation
         final possibleKeys = _client.availableTools.keys
-            .where((key) => key.startsWith(toolKey!) || (toolKey?.startsWith(key.split(':').first) ?? false))
+            .where((key) => key.startsWith(toolKey!) || (toolKey.startsWith(key.split(':').first) ?? false))
             .toList();
         
         if (possibleKeys.isEmpty) {

@@ -81,7 +81,7 @@ class ColorSchemeManager extends ChangeNotifier {
   ];
 
   ColorSchemeOption _selectedScheme = _defaultSchemes[0];
-  List<ColorSchemeOption> _customSchemes = [];
+  final List<ColorSchemeOption> _customSchemes = [];
 
   ColorSchemeManager() {
     _loadSelectedScheme();

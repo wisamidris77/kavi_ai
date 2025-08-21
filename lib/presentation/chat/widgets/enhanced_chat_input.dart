@@ -211,7 +211,7 @@ class _EnhancedChatInputState extends State<EnhancedChatInput> {
                     width: 120,
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: colors.surfaceVariant,
+                      color: colors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: colors.outline),
                     ),

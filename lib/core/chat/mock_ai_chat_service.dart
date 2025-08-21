@@ -88,6 +88,6 @@ class MockAiChatService implements AiChatService {
       return "${randomParagraph()} ${randomParagraph()}";
     }
 
-    return "${randomParagraph()}";
+    return randomParagraph();
   }
 } 

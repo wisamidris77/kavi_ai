@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:kavi/core/chat/chat_message.dart';
 import '../../core/bookmarks/bookmarks_storage_service.dart';
 
@@ -128,7 +127,7 @@ class _MessageBookmarksState extends State<MessageBookmarks> {
                             _selectedCategory = category;
                           });
                         },
-                        backgroundColor: colorScheme.surfaceVariant,
+                        backgroundColor: colorScheme.surfaceContainerHighest,
                         selectedColor: colorScheme.primaryContainer,
                       ),
                     );
@@ -476,7 +475,7 @@ class _BookmarkMessageDialogState extends State<BookmarkMessageDialog> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceVariant,
+                color: colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(

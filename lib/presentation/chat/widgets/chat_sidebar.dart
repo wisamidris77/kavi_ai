@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../widgets/glass_morphism_widget.dart';
-import '../../widgets/message_search.dart';
 import '../../../domain/models/chat_model.dart';
 
 class ChatSidebar extends StatefulWidget {

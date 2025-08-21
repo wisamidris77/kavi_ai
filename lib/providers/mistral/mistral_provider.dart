@@ -2,13 +2,12 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../base/ai_provider.dart';
-import '../base/provider_config.dart';
 
 class MistralProvider extends AiProvider {
   static const String _baseUrl = 'https://api.mistral.ai/v1';
   static const String _defaultModel = 'mistral-large-latest';
 
-  MistralProvider(AiProviderConfig config) : super(config);
+  MistralProvider(super.config);
 
   @override
   String get name => 'Mistral AI';

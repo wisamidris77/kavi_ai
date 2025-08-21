@@ -365,17 +365,17 @@ class _ToolCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(tool.description!, style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
             ],
-            if (tool.inputSchema != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: colorScheme.primaryContainer, borderRadius: BorderRadius.circular(4)),
-                child: Text(
-                  '${tool.inputSchema.properties?.length ?? 0} parameters',
-                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onPrimaryContainer),
-                ),
+            ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: colorScheme.primaryContainer, borderRadius: BorderRadius.circular(4)),
+              child: Text(
+                '${tool.inputSchema.properties?.length ?? 0} parameters',
+                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onPrimaryContainer),
               ),
-            ],
+            ),
+          ],
           ],
         ),
       ),
@@ -515,7 +515,7 @@ class _ToolExecutionDialogState extends State<_ToolExecutionDialog> {
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: theme.colorScheme.surfaceVariant, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
                 child: Text(_result!),
               ),
             ],
@@ -583,7 +583,7 @@ class _HistoryCard extends StatelessWidget {
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: colorScheme.surfaceVariant, borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(4)),
                 child: Text(record.result!, style: theme.textTheme.bodySmall, maxLines: 3, overflow: TextOverflow.ellipsis),
               ),
             ],

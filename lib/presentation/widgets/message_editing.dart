@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:kavi/core/chat/chat_message.dart';
 
 class MessageEditing extends StatefulWidget {
@@ -97,7 +96,7 @@ class _MessageEditingState extends State<MessageEditing> {
       margin: const EdgeInsets.all(8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceVariant,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: colorScheme.outlineVariant,

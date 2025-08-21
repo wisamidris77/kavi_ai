@@ -1,4 +1,3 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'package:kavi/core/chat/chat_message.dart';
 
 import '../../providers/base/provider_type.dart';

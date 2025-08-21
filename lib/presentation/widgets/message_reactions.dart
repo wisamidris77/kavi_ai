@@ -119,7 +119,7 @@ class _ReactionChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: hasUserReacted 
               ? colorScheme.primaryContainer 
-              : colorScheme.surfaceVariant,
+              : colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: hasUserReacted 
@@ -175,7 +175,7 @@ class _AddReactionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceVariant,
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: colorScheme.outlineVariant,
@@ -233,7 +233,7 @@ class _EmojiPickerDialog extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceVariant,
+                      color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(

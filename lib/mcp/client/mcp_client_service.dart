@@ -63,7 +63,7 @@ base class McpClientService extends MCPClient {
         mode: ProcessStartMode.normal,
         runInShell: Platform.isWindows, // Use shell on Windows to find executables in PATH
       );
-    } catch (e, stack) {
+    } catch (e) {
       print('MCP Client: Process.start failed');
       print('MCP Client: Error: $e');
       print('MCP Client: Command was: "${config.command}"');
@@ -159,7 +159,7 @@ base class McpClientService extends MCPClient {
     print('MCP Client: Found ${response.tools.length} tools');
     
     for (final tool in response.tools) {
-      final toolKey = '${serverName}:${tool.name}';
+      final toolKey = '$serverName:${tool.name}';
       _availableTools[toolKey] = tool;
       _toolToConnection[toolKey] = connection;
       print('MCP Client: Registered tool: $toolKey');
@@ -200,10 +200,8 @@ base class McpClientService extends MCPClient {
       buffer.writeln('Description: ${tool.description}');
     }
     
-    if (tool.inputSchema != null) {
-      buffer.writeln('Parameters: ${_formatSchema(tool.inputSchema!)}');
-    }
-    
+    buffer.writeln('Parameters: ${_formatSchema(tool.inputSchema)}');
+      
     return buffer.toString();
   }
 

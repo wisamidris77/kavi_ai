@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class CommandPalette extends StatefulWidget {
   final List<CommandAction> actions;
@@ -137,7 +136,7 @@ class _CommandPaletteState extends State<CommandPalette>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceVariant,
+                      color: colorScheme.surfaceContainerHighest,
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
@@ -247,7 +246,7 @@ class _CommandPaletteState extends State<CommandPalette>
                                           decoration: BoxDecoration(
                                             color: isSelected
                                                 ? colorScheme.primary
-                                                : colorScheme.surfaceVariant,
+                                                : colorScheme.surfaceContainerHighest,
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Icon(
@@ -293,7 +292,7 @@ class _CommandPaletteState extends State<CommandPalette>
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: colorScheme.surfaceVariant,
+                                              color: colorScheme.surfaceContainerHighest,
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                             child: Text(
@@ -317,7 +316,7 @@ class _CommandPaletteState extends State<CommandPalette>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceVariant,
+                      color: colorScheme.surfaceContainerHighest,
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(16),
                         bottomRight: Radius.circular(16),

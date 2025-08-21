@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:kavi/core/chat/chat_message.dart';
 
-import '../../../domain/models/chat_message_model.dart' as domain_msg;
 import '../../../domain/models/chat_model.dart';
 import '../../../providers/base/provider_type.dart';
 import '../repository/chat_history_repository.dart';

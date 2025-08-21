@@ -4,10 +4,9 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import '../base/ai_provider.dart';
-import '../base/provider_config.dart';
 
 class DeepSeekProvider extends AiProvider {
-  DeepSeekProvider(AiProviderConfig config)
+  DeepSeekProvider(super.config)
       : _http = Dio(BaseOptions(
           connectTimeout: config.timeout,
           receiveTimeout: config.timeout,
@@ -15,8 +14,7 @@ class DeepSeekProvider extends AiProvider {
           headers: {
             'User-Agent': 'Kavi-AI/1.0',
           },
-        )),
-        super(config);
+        ));
 
   final Dio _http;
 

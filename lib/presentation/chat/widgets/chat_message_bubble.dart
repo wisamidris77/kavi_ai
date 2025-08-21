@@ -4,12 +4,10 @@ import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:kavi/core/token/token_tracker.dart';
 import '../../../core/chat/chat_message.dart';
 import 'tool_call_badge.dart';
-import '../../widgets/code_block_widget.dart';
 import '../../widgets/message_timestamp.dart';
 import '../../widgets/message_reactions.dart';
 import '../../widgets/message_editing.dart';
 import '../../widgets/token_usage_widget.dart';
-import '../../widgets/latex_rendering.dart';
 
 enum MessageStatus { sending, sent, error, delivered }
 
@@ -72,7 +70,7 @@ class ChatMessageBubble extends StatelessWidget {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: isUser ? colors.surfaceVariant : colors.surface,
+                    color: isUser ? colors.surfaceContainerHighest : colors.surface,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: colors.outlineVariant),
                   ),

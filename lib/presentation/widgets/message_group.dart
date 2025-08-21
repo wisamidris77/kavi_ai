@@ -176,7 +176,7 @@ class _MessageBubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: isUser 
             ? colorScheme.primaryContainer 
-            : colorScheme.surfaceVariant,
+            : colorScheme.surfaceContainerHighest,
         borderRadius: borderRadius,
         border: Border.all(
           color: isUser 
@@ -207,7 +207,7 @@ class _GroupTimestamp extends StatelessWidget {
     final firstMessage = messages.first;
     final lastMessage = messages.last;
     
-    final timeRange = _getTimeRange(firstMessage.createdAt!, lastMessage.createdAt!);
+    final timeRange = _getTimeRange(firstMessage.createdAt, lastMessage.createdAt);
 
     return Text(
       timeRange,
@@ -294,7 +294,7 @@ class MessageGroupingHelper {
     if (message1.role != message2.role) return false;
 
     // Within time threshold
-    final timeDifference = message2.createdAt!.difference(message1.createdAt!);
+    final timeDifference = message2.createdAt.difference(message1.createdAt);
     if (timeDifference > threshold) return false;
 
     // Not system messages (they should be separate)

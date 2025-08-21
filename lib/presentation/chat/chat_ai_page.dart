@@ -47,7 +47,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
   StreamSubscription<ChatMessage>? _subscription;
   bool _isBusy = false;
   String? _activeMessageId;
-  List<FileInfo> _attachedFiles = [];
+  final List<FileInfo> _attachedFiles = [];
 
   // New state for features
   bool _showSearch = false;
@@ -779,7 +779,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
                           ],
                         );
                       })
-                      .toList(),
+                      ,
                 ],
               ),
             ),
@@ -830,7 +830,7 @@ class _ChatAiPageState extends State<ChatAiPage> {
         Expanded(
           flex: 1,
           child: Container(
-            color: colors.surfaceVariant.withOpacity(0.3),
+            color: colors.surfaceContainerHighest.withOpacity(0.3),
             child: Column(
               children: [
                 Container(

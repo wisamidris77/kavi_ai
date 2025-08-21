@@ -2,13 +2,12 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../base/ai_provider.dart';
-import '../base/provider_config.dart';
 
 class AnthropicProvider extends AiProvider {
   static const String _baseUrl = 'https://api.anthropic.com/v1';
   static const String _defaultModel = 'claude-3-sonnet-20240229';
 
-  AnthropicProvider(AiProviderConfig config) : super(config);
+  AnthropicProvider(super.config);
 
   @override
   String get name => 'Anthropic Claude';

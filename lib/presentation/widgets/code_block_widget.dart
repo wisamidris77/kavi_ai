@@ -32,7 +32,7 @@ class _CodeBlockWidgetState extends State<CodeBlockWidget> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceVariant,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
@@ -169,7 +169,7 @@ class _CodeBlockWidgetState extends State<CodeBlockWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: lines.map((line) {
-              return Container(
+              return SizedBox(
                 height: 20,
                 child: SelectableText(
                   line,

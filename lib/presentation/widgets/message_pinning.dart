@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:kavi/core/chat/chat_message.dart';
 import '../../core/pinning/pinning_storage_service.dart';
 
@@ -36,7 +35,7 @@ class _MessagePinningState extends State<MessagePinning> {
       margin: const EdgeInsets.all(8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceVariant,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: colorScheme.outlineVariant,

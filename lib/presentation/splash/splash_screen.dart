@@ -122,7 +122,7 @@ class _SplashScreenState extends State<SplashScreen>
               end: Alignment.bottomRight,
               colors: [
                 colorScheme.surface,
-                colorScheme.surfaceVariant,
+                colorScheme.surfaceContainerHighest,
               ],
             ),
           ),

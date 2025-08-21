@@ -226,7 +226,7 @@ class _MessageSearchState extends State<MessageSearch> {
                         label: Text(_getFilterLabel(filter)),
                         selected: isSelected,
                         onSelected: (_) => _onFilterChanged(filter),
-                        backgroundColor: colorScheme.surfaceVariant,
+                        backgroundColor: colorScheme.surfaceContainerHighest,
                         selectedColor: colorScheme.primaryContainer,
                       ),
                     );
@@ -369,7 +369,7 @@ class _SearchResultTile extends StatelessWidget {
       leading: CircleAvatar(
         backgroundColor: isUser 
             ? colorScheme.primaryContainer 
-            : colorScheme.surfaceVariant,
+            : colorScheme.surfaceContainerHighest,
         child: Icon(
           isUser ? Icons.person : Icons.smart_toy,
           color: isUser 

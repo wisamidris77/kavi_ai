@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:kavi/core/chat/chat_message.dart';
 import '../../core/thread/thread_storage_service.dart';
 
@@ -101,7 +100,7 @@ class _ThreadMessageTile extends StatelessWidget {
       children: [
         // Thread line and indicator
         if (showThreadIndicator)
-          Container(
+          SizedBox(
             width: 40,
             child: Column(
               children: [
@@ -130,7 +129,7 @@ class _ThreadMessageTile extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: colorScheme.surfaceVariant,
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: colorScheme.outlineVariant,
@@ -300,7 +299,7 @@ class ThreadManager extends ChangeNotifier {
       }
     }
 
-    return replies..sort((a, b) => a.message.createdAt!.compareTo(b.message.createdAt!));
+    return replies..sort((a, b) => a.message.createdAt.compareTo(b.message.createdAt));
   }
 
   void addReply(ChatMessage parentMessage, ChatMessage replyMessage) {

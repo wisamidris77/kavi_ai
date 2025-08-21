@@ -4,7 +4,6 @@ import '../../providers/base/ai_provider.dart';
 import '../../providers/base/provider_config.dart';
 import '../../providers/base/provider_type.dart';
 import '../../providers/factory/ai_provider_factory.dart';
-import '../models/chat_message_model.dart';
 
 class AiChatService {
   AiChatService({
