@@ -7,7 +7,6 @@ class ProviderHealthChecker extends ChangeNotifier {
   final Map<AiProviderType, Timer> _healthCheckTimers = {};
   
   static const Duration _checkInterval = Duration(minutes: 5);
-  static const Duration _timeout = Duration(seconds: 10);
 
   ProviderHealthChecker() {
     _initializeHealthStatus();
